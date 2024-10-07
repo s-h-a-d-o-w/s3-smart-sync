@@ -9,23 +9,34 @@ import { SNSClient, ConfirmSubscriptionCommand } from "@aws-sdk/client-sns";
 import { SNSMessage } from "aws-lambda";
 
 const {
-  env: { AWS_REGION },
+  env: { AWS_REGION, ACCESS_KEY, SECRET_KEY },
 } = process;
 
-if (!AWS_REGION) {
-  throw new Error("Must be set: AWS_REGION");
+if (!AWS_REGION || !ACCESS_KEY || !SECRET_KEY) {
+  throw new Error("missing environment variable");
 }
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-const snsClient = new SNSClient({ region: AWS_REGION });
+const snsClient = new SNSClient({
+  region: AWS_REGION,
+  credentials: {
+    accessKeyId: ACCESS_KEY,
+    secretAccessKey: SECRET_KEY,
+  },
+});
 
 // Store connected WebSocket clients
 const clients = new Set<WebSocket>();
 
-app.use(bodyParser.json());
+// app.use(bodyParser.json());
+app.use(
+  bodyParser.json({
+    type: ["text/plain", "application/json"],
+  }),
+);
 
 app.post("/sns", async (req, res) => {
   const message = req.body as SNSMessage;

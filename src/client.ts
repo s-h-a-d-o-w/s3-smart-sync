@@ -11,15 +11,16 @@ import {
 import chokidar from "chokidar";
 import fs from "fs/promises";
 import path from "path";
-import { SNSEventRecord, SNSMessage } from "aws-lambda";
+import { SNSMessage, S3Event } from "aws-lambda";
+import { getEnvironmentVariables } from "./getEnvironmentVariables.js";
 
-const {
-  env: { AWS_REGION, S3_BUCKET, WEBSOCKET_URL, LOCAL_DIR },
-} = process;
-
-if (!AWS_REGION || !S3_BUCKET || !WEBSOCKET_URL || !LOCAL_DIR) {
-  throw new Error("missing variable");
-}
+const { AWS_REGION, S3_BUCKET, WEBSOCKET_URL, LOCAL_DIR } =
+  getEnvironmentVariables(
+    "AWS_REGION",
+    "S3_BUCKET",
+    "WEBSOCKET_URL",
+    "LOCAL_DIR",
+  );
 
 const s3Client = new S3Client({ region: AWS_REGION });
 
@@ -32,33 +33,28 @@ ws.on("open", () => {
   console.log("Connected to WebSocket server");
 });
 
-// eslint-disable-next-line require-await
 ws.on("message", async (data) => {
   try {
     const message = JSON.parse(data.toString()) as SNSMessage;
     if (message.Type === "Notification") {
-      const snsMessage = JSON.parse(message.Message) as {
-        Records: SNSEventRecord[];
-      };
-      console.log("Received SNS notification:", snsMessage);
+      const snsMessage = JSON.parse(message.Message) as S3Event;
 
-      //   if (snsMessage.Records) {
-      //     for (const record of snsMessage.Records) {
-      //       if (
-      //         (record.eventName &&
-      //           record.eventName.startsWith("ObjectCreated:")) ||
-      //         record.eventName.startsWith("ObjectUpdated:")
-      //       ) {
-      //         const key = decodeURIComponent(
-      //           record.s3.object.key.replace(/\+/g, " "),
-      //         );
-      //         await downloadFile(key);
-      //       }
-      //     }
-      //   }
+      for (const record of snsMessage.Records) {
+        const key = decodeURIComponent(
+          record.s3.object.key.replace(/\+/g, " "),
+        );
+
+        if (record.eventName.startsWith("ObjectCreated:")) {
+          await downloadFile(key);
+        } else if (record.eventName.startsWith("ObjectRemoved:")) {
+          await removeLocalFile(key);
+        } else {
+          throw new Error("Invalid event received: " + JSON.stringify(message));
+        }
+      }
     }
   } catch (error) {
-    console.error("Error processing WebSocket message:", error);
+    console.error("Error processing WebSocket message: ", error);
   }
 });
 
@@ -67,7 +63,7 @@ ws.on("close", () => {
 });
 
 async function downloadFile(key: string) {
-  const localPath = path.join(LOCAL_DIR!, key);
+  const localPath = path.join(LOCAL_DIR, key);
 
   try {
     const { Body } = await s3Client.send(
@@ -87,26 +83,39 @@ async function downloadFile(key: string) {
   }
 }
 
-async function uploadFile(localPath: string) {
-  const key = path.relative(LOCAL_DIR!, localPath);
+async function removeLocalFile(key: string) {
+  const localPath = path.join(LOCAL_DIR, key);
 
   try {
-    const fileContent = await fs.readFile(localPath);
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: key,
-        Body: fileContent,
-      }),
-    );
-    console.log(`Uploaded: ${key}`);
+    await fs.unlink(localPath);
+    console.log(`Removed local file: ${localPath}`);
   } catch (error) {
-    console.error(`Error uploading file ${key}:`, error);
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.error(`Error removing local file ${localPath}:`, error);
+    } else {
+      console.log(`File ${localPath} already removed or doesn't exist.`);
+    }
   }
 }
 
 async function syncFile(localPath: string) {
-  const key = path.relative(LOCAL_DIR!, localPath);
+  const key = path.relative(LOCAL_DIR, localPath);
+
+  async function uploadFile() {
+    try {
+      const fileContent = await fs.readFile(localPath);
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: key,
+          Body: fileContent,
+        }),
+      );
+      console.log(`Uploaded: ${key}`);
+    } catch (error) {
+      console.error(`Error uploading file ${key}:`, error);
+    }
+  }
 
   try {
     const localStat = await fs.stat(localPath);
@@ -120,11 +129,11 @@ async function syncFile(localPath: string) {
       );
 
       if (LastModified && localStat.mtime > LastModified) {
-        await uploadFile(localPath);
+        await uploadFile();
       }
     } catch (error) {
       // If the file doesn't exist in S3, upload it
-      await uploadFile(localPath);
+      await uploadFile();
     }
   } catch (error) {
     console.error(`Error syncing file ${key}:`, error);
