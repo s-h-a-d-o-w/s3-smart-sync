@@ -9,6 +9,10 @@ import { SNSClient, ConfirmSubscriptionCommand } from "@aws-sdk/client-sns";
 import { SNSMessage } from "aws-lambda";
 import { getEnvironmentVariables } from "./getEnvironmentVariables.js";
 
+interface ExtendedWebSocket extends WebSocket {
+  isAlive?: boolean;
+}
+
 const { AWS_REGION, ACCESS_KEY, SECRET_KEY } = getEnvironmentVariables(
   "AWS_REGION",
   "ACCESS_KEY",
@@ -73,7 +77,12 @@ app.post("/sns", async (req, res) => {
 });
 
 // WebSocket connection handler
-wss.on("connection", (client) => {
+wss.on("connection", (client: ExtendedWebSocket) => {
+  client.isAlive = true;
+  client.on("pong", () => {
+    client.isAlive = true;
+  });
+
   console.log("New WebSocket client connected");
   clients.add(client);
 
@@ -82,6 +91,15 @@ wss.on("connection", (client) => {
     clients.delete(client);
   });
 });
+
+setInterval(function ping() {
+  wss.clients.forEach(function each(client: ExtendedWebSocket) {
+    if (client.isAlive === false) return client.terminate();
+
+    client.isAlive = false;
+    client.ping();
+  });
+}, 30000);
 
 server.listen(80, () => {
   console.log(`Server is running.`);
