@@ -26,5 +26,4 @@ jobs:
       env:
         CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
         CAPROVER_MACHINE_01: ${{ secrets.CAPROVER_MACHINE_01 }}
-        CAPROVER_MACHINE_02: ${{ secrets.CAPROVER_MACHINE_02 }}
         CI: true

@@ -11,8 +11,4 @@ echo "Deploying to machine 01..."
 export CAPROVER_URL=$CAPROVER_MACHINE_01
 npx caprover deploy > /dev/null
 
-echo "Deploying to machine 02..."
-export CAPROVER_URL=$CAPROVER_MACHINE_02
-npx caprover deploy > /dev/null
-
 rm caprover_deployment.tar
