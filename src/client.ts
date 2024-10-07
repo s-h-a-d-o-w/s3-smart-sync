@@ -22,6 +22,15 @@ const { AWS_REGION, S3_BUCKET, WEBSOCKET_URL, LOCAL_DIR } =
     "LOCAL_DIR",
   );
 
+const recentLocalDeletions = new Set<string>();
+const recentDownloads = new Set<string>();
+const recentDeletions = new Set<string>();
+const recentUploads = new Set<string>();
+// Time between remote operations have finished and the resulting S3 event that we will get - which is hopefully earlier than this timeout.
+const RECENT_REMOTE_TIMEOUT = 2000;
+// Time between writing the download has finished and chokidar hopefully getting triggered earlier than this.
+const RECENT_LOCAL_TIMEOUT = 500;
+
 const s3Client = new S3Client({ region: AWS_REGION });
 
 // Ensure the local sync directory exists
@@ -30,7 +39,7 @@ fs.mkdir(LOCAL_DIR, { recursive: true });
 const ws = new WebSocket(WEBSOCKET_URL);
 
 ws.on("open", () => {
-  console.log("Connected to WebSocket server");
+  console.log(`Connected to ${WEBSOCKET_URL}`);
 });
 
 ws.on("message", async (data) => {
@@ -60,10 +69,17 @@ ws.on("message", async (data) => {
 
 ws.on("close", () => {
   console.log("Disconnected from WebSocket server");
+  process.exit(1);
 });
 
 async function downloadFile(key: string) {
   const localPath = path.join(LOCAL_DIR, key);
+  if (recentUploads.has(localPath)) {
+    console.log(
+      `Skipping download for file recently uploaded to S3: ${localPath}`,
+    );
+    return;
+  }
 
   try {
     const { Body } = await s3Client.send(
@@ -74,9 +90,16 @@ async function downloadFile(key: string) {
     );
 
     if (Body) {
+      recentDownloads.add(localPath);
+
       await fs.mkdir(path.dirname(localPath), { recursive: true });
       await fs.writeFile(localPath, await Body.transformToByteArray());
       console.log(`Downloaded: ${key}`);
+
+      // Start timeout only after writing the file has finished
+      setTimeout(() => {
+        recentDownloads.delete(localPath);
+      }, RECENT_LOCAL_TIMEOUT);
     }
   } catch (error) {
     console.error(`Error downloading file ${key}:`, error);
@@ -85,10 +108,22 @@ async function downloadFile(key: string) {
 
 async function removeLocalFile(key: string) {
   const localPath = path.join(LOCAL_DIR, key);
+  if (recentDeletions.has(localPath)) {
+    console.log(
+      `Skipping local removal for file recently deleted on S3: ${localPath}`,
+    );
+    return;
+  }
 
   try {
+    recentLocalDeletions.add(localPath);
+
     await fs.unlink(localPath);
     console.log(`Removed local file: ${localPath}`);
+
+    setTimeout(() => {
+      recentLocalDeletions.delete(localPath);
+    }, RECENT_LOCAL_TIMEOUT);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
       console.error(`Error removing local file ${localPath}:`, error);
@@ -98,11 +133,47 @@ async function removeLocalFile(key: string) {
   }
 }
 
+async function removeFile(localPath: string) {
+  if (recentLocalDeletions.has(localPath)) {
+    console.log(
+      `Skipping repeated S3 removal for recently deleted file: ${localPath}`,
+    );
+    return;
+  }
+
+  const key = path.relative(LOCAL_DIR, localPath);
+
+  try {
+    recentDeletions.add(localPath);
+
+    await s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: key,
+      }),
+    );
+    console.log(`Deleted from S3: ${key}`);
+
+    setTimeout(() => {
+      recentDeletions.delete(localPath);
+    }, RECENT_REMOTE_TIMEOUT);
+  } catch (error) {
+    console.error(`Error deleting file ${key} from S3:`, error);
+  }
+}
+
 async function syncFile(localPath: string) {
+  if (recentDownloads.has(localPath)) {
+    console.log(`Skipping upload for recently downloaded file: ${localPath}`);
+    return;
+  }
+
   const key = path.relative(LOCAL_DIR, localPath);
 
   async function uploadFile() {
     try {
+      recentUploads.add(localPath);
+
       const fileContent = await fs.readFile(localPath);
       await s3Client.send(
         new PutObjectCommand({
@@ -112,6 +183,10 @@ async function syncFile(localPath: string) {
         }),
       );
       console.log(`Uploaded: ${key}`);
+
+      setTimeout(() => {
+        recentUploads.delete(localPath);
+      }, RECENT_REMOTE_TIMEOUT);
     } catch (error) {
       console.error(`Error uploading file ${key}:`, error);
     }
@@ -140,25 +215,10 @@ async function syncFile(localPath: string) {
   }
 }
 
-// Watch for local file changes
-const watcher = chokidar.watch(LOCAL_DIR);
-
-watcher
-  .on("add", syncFile)
-  .on("change", syncFile)
-  .on("unlink", async (localPath) => {
-    const key = path.relative(LOCAL_DIR, localPath);
-    try {
-      await s3Client.send(
-        new DeleteObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: key,
-        }),
-      );
-      console.log(`Deleted from S3: ${key}`);
-    } catch (error) {
-      console.error(`Error deleting file ${key} from S3:`, error);
-    }
-  });
+// Don't use for`awaitWriteFinish` because that would cause conflicts with the RECENT_TIMEOUT. Because that time only starts once writing has finished, potential `add` events during writing are ignored anyway.
+const watcher = chokidar.watch(LOCAL_DIR, {
+  ignoreInitial: true,
+});
+watcher.on("add", syncFile).on("change", syncFile).on("unlink", removeFile);
 
 console.log(`Watching for changes in ${LOCAL_DIR}`);

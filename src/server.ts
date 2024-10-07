@@ -38,6 +38,10 @@ app.use(
   }),
 );
 
+app.get("/", (_, res) => {
+  res.status(200).send("Running.");
+});
+
 app.post("/sns", async (req, res) => {
   const message = req.body as SNSMessage;
 
