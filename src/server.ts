@@ -7,14 +7,13 @@ import WebSocket from "ws";
 import bodyParser from "body-parser";
 import { SNSClient, ConfirmSubscriptionCommand } from "@aws-sdk/client-sns";
 import { SNSMessage } from "aws-lambda";
+import { getEnvironmentVariables } from "./getEnvironmentVariables.js";
 
-const {
-  env: { AWS_REGION, ACCESS_KEY, SECRET_KEY },
-} = process;
-
-if (!AWS_REGION || !ACCESS_KEY || !SECRET_KEY) {
-  throw new Error("missing environment variable");
-}
+const { AWS_REGION, ACCESS_KEY, SECRET_KEY } = getEnvironmentVariables(
+  "AWS_REGION",
+  "ACCESS_KEY",
+  "SECRET_KEY",
+);
 
 const app = express();
 const server = http.createServer(app);
