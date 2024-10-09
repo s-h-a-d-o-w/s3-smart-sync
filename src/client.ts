@@ -13,10 +13,16 @@ import fs from "fs/promises";
 import path from "path";
 import { SNSMessage, S3Event } from "aws-lambda";
 import { getEnvironmentVariables } from "./getEnvironmentVariables.js";
+import {
+  createTrayIcon,
+  destroyTrayIcon,
+  updateTrayIconImage,
+} from "node-tray"; // !!!!!!!! local !!!!!
 
-const { AWS_REGION, S3_BUCKET, WEBSOCKET_URL, LOCAL_DIR } =
+const { AWS_REGION, RECONNECT_DELAY, S3_BUCKET, WEBSOCKET_URL, LOCAL_DIR } =
   getEnvironmentVariables(
     "AWS_REGION",
+    "RECONNECT_DELAY",
     "S3_BUCKET",
     "WEBSOCKET_URL",
     "LOCAL_DIR",
@@ -36,41 +42,64 @@ const s3Client = new S3Client({ region: AWS_REGION });
 // Ensure the local sync directory exists
 fs.mkdir(LOCAL_DIR, { recursive: true });
 
-const ws = new WebSocket(WEBSOCKET_URL);
-
-ws.on("open", () => {
-  console.log(`Connected to ${WEBSOCKET_URL}`);
+createTrayIcon({
+  icon: "./assets/icon_disconnected.ico",
+  tooltip: "S3 Smart Sync",
+  items: [
+    {
+      id: Symbol(),
+      text: "Exit",
+      onClick: () => {
+        destroyTrayIcon();
+        process.exit(0);
+      },
+    },
+  ],
 });
 
-ws.on("message", async (data) => {
-  try {
-    const message = JSON.parse(data.toString()) as SNSMessage;
-    if (message.Type === "Notification") {
-      const snsMessage = JSON.parse(message.Message) as S3Event;
+function connectWebSocket() {
+  const ws = new WebSocket(WEBSOCKET_URL);
 
-      for (const record of snsMessage.Records) {
-        const key = decodeURIComponent(
-          record.s3.object.key.replace(/\+/g, " "),
-        );
+  ws.on("open", () => {
+    console.log(`Connected to ${WEBSOCKET_URL}`);
+    updateTrayIconImage("./assets/icon.ico");
+  });
 
-        if (record.eventName.startsWith("ObjectCreated:")) {
-          await downloadFile(key);
-        } else if (record.eventName.startsWith("ObjectRemoved:")) {
-          await removeLocalFile(key);
-        } else {
-          throw new Error("Invalid event received: " + JSON.stringify(message));
+  ws.on("message", async (data) => {
+    try {
+      const message = JSON.parse(data.toString()) as SNSMessage;
+      if (message.Type === "Notification") {
+        const snsMessage = JSON.parse(message.Message) as S3Event;
+
+        for (const record of snsMessage.Records) {
+          const key = decodeURIComponent(
+            record.s3.object.key.replace(/\+/g, " "),
+          );
+
+          if (record.eventName.startsWith("ObjectCreated:")) {
+            await downloadFile(key);
+          } else if (record.eventName.startsWith("ObjectRemoved:")) {
+            await removeLocalFile(key);
+          } else {
+            throw new Error(
+              "Received invalid record: " + JSON.stringify(record),
+            );
+          }
         }
+      } else {
+        throw new Error("Received invalid message: " + JSON.stringify(message));
       }
+    } catch (error) {
+      console.error("Error processing WebSocket message: ", error);
     }
-  } catch (error) {
-    console.error("Error processing WebSocket message: ", error);
-  }
-});
+  });
 
-ws.on("close", () => {
-  console.log("Disconnected from WebSocket server");
-  process.exit(1);
-});
+  ws.on("close", () => {
+    console.log("Disconnected from WebSocket server");
+    updateTrayIconImage("./assets/icon_disconnected.ico");
+    setTimeout(connectWebSocket, parseInt(RECONNECT_DELAY, 10));
+  });
+}
 
 async function downloadFile(key: string) {
   const localPath = path.join(LOCAL_DIR, key);
@@ -222,3 +251,5 @@ const watcher = chokidar.watch(LOCAL_DIR, {
 watcher.on("add", syncFile).on("change", syncFile).on("unlink", removeFile);
 
 console.log(`Watching for changes in ${LOCAL_DIR}`);
+
+connectWebSocket();
