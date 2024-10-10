@@ -1,3 +1,5 @@
 .env
 .tsimp
 /node_modules
+
+*.log

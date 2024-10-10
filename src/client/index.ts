@@ -1,23 +1,24 @@
 import "dotenv/config";
 
-import WebSocket from "ws";
 import {
-  S3Client,
   DeleteObjectCommand,
   GetObjectCommand,
-  PutObjectCommand,
   HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
 } from "@aws-sdk/client-s3";
+import { S3Event, SNSMessage } from "aws-lambda";
 import chokidar from "chokidar";
 import fs from "fs/promises";
-import path from "path";
-import { SNSMessage, S3Event } from "aws-lambda";
-import { getEnvironmentVariables } from "./getEnvironmentVariables.js";
 import {
   createTrayIcon,
   destroyTrayIcon,
   updateTrayIconImage,
 } from "node-tray"; // !!!!!!!! local !!!!!
+import path from "path";
+import WebSocket from "ws";
+import { getEnvironmentVariables } from "../getEnvironmentVariables.js";
+import { trackFileOperation } from "./trackFileOperation.js";
 
 const { AWS_REGION, RECONNECT_DELAY, S3_BUCKET, WEBSOCKET_URL, LOCAL_DIR } =
   getEnvironmentVariables(
@@ -75,6 +76,7 @@ function connectWebSocket() {
           const key = decodeURIComponent(
             record.s3.object.key.replace(/\+/g, " "),
           );
+          trackFileOperation(key);
 
           if (record.eventName.startsWith("ObjectCreated:")) {
             await downloadFile(key);
@@ -198,6 +200,7 @@ async function syncFile(localPath: string) {
   }
 
   const key = path.relative(LOCAL_DIR, localPath);
+  trackFileOperation(key);
 
   async function uploadFile() {
     try {

@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "eslint .",
     "start": "tsx .",
-    "start:client": "tsx ./src/client.ts"
+    "start:client": "tsx ./src/client"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.145",
@@ -33,6 +33,7 @@
     "express": "^4.21.0",
     "systray": "^1.0.5",
     "tsx": "^4.19.1",
+    "winston": "^3.15.0",
     "ws": "^8.18.0"
   }
 }
