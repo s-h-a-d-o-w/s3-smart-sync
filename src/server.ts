@@ -91,14 +91,14 @@ wss.on("connection", (client: ExtendedWebSocket) => {
   });
 });
 
-// setInterval(function ping() {
-//   wss.clients.forEach(function each(client: ExtendedWebSocket) {
-//     if (client.isAlive === false) return client.terminate();
+setInterval(function ping() {
+  wss.clients.forEach(function each(client: ExtendedWebSocket) {
+    if (client.isAlive === false) return client.terminate();
 
-//     client.isAlive = false;
-//     client.ping();
-//   });
-// }, 30000);
+    client.isAlive = false;
+    client.ping();
+  });
+}, 30000);
 
 server.listen(80, () => {
   console.log(`Server is running.`);
