@@ -8,7 +8,7 @@ const fileOperations: Record<string, number[]> = {}; // <S3 key, timestamp[]>
  * @param key S3 key
  */
 export function trackFileOperation(key: string) {
-  if (!(key in fileOperations)) {
+  if (!fileOperations[key]) {
     fileOperations[key] = [];
   }
   fileOperations[key].push(Date.now());

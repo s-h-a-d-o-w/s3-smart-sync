@@ -1,12 +1,5 @@
 import "dotenv/config";
 
-import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
 import { S3Event, SNSMessage } from "aws-lambda";
 import chokidar from "chokidar";
 import fs from "fs/promises";
@@ -17,31 +10,24 @@ import {
 } from "node-tray"; // !!!!!!!! local !!!!!
 import path from "path";
 import WebSocket from "ws";
-import { getEnvironmentVariables } from "../getEnvironmentVariables.js";
+import { biDirectionalSync } from "./biDirectionalSync.js";
+import { LOCAL_DIR, RECONNECT_DELAY, WEBSOCKET_URL } from "./consts.js";
+import {
+  convertAbsolutePathToKey,
+  deleteObject,
+  download,
+  upload,
+} from "./s3Operations.js";
 import { trackFileOperation } from "./trackFileOperation.js";
-
-const { AWS_REGION, RECONNECT_DELAY, S3_BUCKET, WEBSOCKET_URL, LOCAL_DIR } =
-  getEnvironmentVariables(
-    "AWS_REGION",
-    "RECONNECT_DELAY",
-    "S3_BUCKET",
-    "WEBSOCKET_URL",
-    "LOCAL_DIR",
-  );
 
 const recentLocalDeletions = new Set<string>();
 const recentDownloads = new Set<string>();
 const recentDeletions = new Set<string>();
 const recentUploads = new Set<string>();
-// Time between remote operations have finished and the resulting S3 event that we will get - which is hopefully earlier than this timeout.
+// Time between remote operations have finished and the resulting S3 event that we will get - which is hopefully earlier than this timeout. May have to be increased for very slow connections but then one has to watch out not to actually change the same file within a period shorter than this.
 const RECENT_REMOTE_TIMEOUT = 2000;
-// Time between writing the download has finished and chokidar hopefully getting triggered earlier than this.
+// Time between writing the download has finished and chokidar hopefully getting triggered earlier than this. May have to be increased for slow local drives but then one has to watch out not to actually change the same file within a period shorter than this.
 const RECENT_LOCAL_TIMEOUT = 500;
-
-const s3Client = new S3Client({ region: AWS_REGION });
-
-// Ensure the local sync directory exists
-fs.mkdir(LOCAL_DIR, { recursive: true });
 
 createTrayIcon({
   icon: "./assets/icon_disconnected.ico",
@@ -51,12 +37,17 @@ createTrayIcon({
       id: Symbol(),
       text: "Exit",
       onClick: () => {
+        console.log("Exiting...");
         destroyTrayIcon();
         process.exit(0);
       },
     },
   ],
 });
+
+// Ensure the local sync directory exists
+fs.mkdir(LOCAL_DIR, { recursive: true });
+await biDirectionalSync();
 
 function connectWebSocket() {
   const ws = new WebSocket(WEBSOCKET_URL);
@@ -113,26 +104,15 @@ async function downloadFile(key: string) {
   }
 
   try {
-    const { Body } = await s3Client.send(
-      new GetObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: key,
-      }),
-    );
+    recentDownloads.add(localPath);
 
-    if (Body) {
-      recentDownloads.add(localPath);
+    await download(key, localPath);
 
-      await fs.mkdir(path.dirname(localPath), { recursive: true });
-      await fs.writeFile(localPath, await Body.transformToByteArray());
-      console.log(`Downloaded: ${key}`);
-
-      // Start timeout only after writing the file has finished
-      setTimeout(() => {
-        recentDownloads.delete(localPath);
-      }, RECENT_LOCAL_TIMEOUT);
-    }
+    setTimeout(() => {
+      recentDownloads.delete(localPath);
+    }, RECENT_LOCAL_TIMEOUT);
   } catch (error) {
+    recentDownloads.delete(localPath);
     console.error(`Error downloading file ${key}:`, error);
   }
 }
@@ -156,6 +136,7 @@ async function removeLocalFile(key: string) {
       recentLocalDeletions.delete(localPath);
     }, RECENT_LOCAL_TIMEOUT);
   } catch (error) {
+    recentLocalDeletions.delete(localPath);
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
       console.error(`Error removing local file ${localPath}:`, error);
     } else {
@@ -165,85 +146,48 @@ async function removeLocalFile(key: string) {
 }
 
 async function removeFile(localPath: string) {
-  if (recentLocalDeletions.has(localPath)) {
+  const key = convertAbsolutePathToKey(localPath);
+  if (recentLocalDeletions.has(key)) {
     console.log(
       `Skipping repeated S3 removal for recently deleted file: ${localPath}`,
     );
     return;
   }
 
-  const key = path.relative(LOCAL_DIR, localPath);
-
   try {
-    recentDeletions.add(localPath);
+    recentDeletions.add(key);
 
-    await s3Client.send(
-      new DeleteObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: key,
-      }),
-    );
-    console.log(`Deleted from S3: ${key}`);
+    await deleteObject(key);
 
     setTimeout(() => {
-      recentDeletions.delete(localPath);
+      recentDeletions.delete(key);
     }, RECENT_REMOTE_TIMEOUT);
   } catch (error) {
+    recentDeletions.delete(key);
     console.error(`Error deleting file ${key} from S3:`, error);
   }
 }
 
 async function syncFile(localPath: string) {
-  if (recentDownloads.has(localPath)) {
+  const key = convertAbsolutePathToKey(localPath);
+  if (recentDownloads.has(key)) {
     console.log(`Skipping upload for recently downloaded file: ${localPath}`);
     return;
   }
 
-  const key = path.relative(LOCAL_DIR, localPath);
   trackFileOperation(key);
 
-  async function uploadFile() {
-    try {
-      recentUploads.add(localPath);
-
-      const fileContent = await fs.readFile(localPath);
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: key,
-          Body: fileContent,
-        }),
-      );
-      console.log(`Uploaded: ${key}`);
-
-      setTimeout(() => {
-        recentUploads.delete(localPath);
-      }, RECENT_REMOTE_TIMEOUT);
-    } catch (error) {
-      console.error(`Error uploading file ${key}:`, error);
-    }
-  }
-
   try {
-    const localStat = await fs.stat(localPath);
+    recentUploads.add(key);
 
-    try {
-      const { LastModified } = await s3Client.send(
-        new HeadObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: key,
-        }),
-      );
+    await upload(localPath, key);
 
-      if (LastModified && localStat.mtime > LastModified) {
-        await uploadFile();
-      }
-    } catch (error) {
-      // If the file doesn't exist in S3, upload it
-      await uploadFile();
-    }
+    setTimeout(() => {
+      recentUploads.delete(key);
+    }, RECENT_REMOTE_TIMEOUT);
   } catch (error) {
-    console.error(`Error syncing file ${key}:`, error);
+    recentUploads.delete(key);
+    console.error(`Error uploading file ${key}:`, error);
   }
 }
 
