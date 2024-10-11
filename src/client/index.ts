@@ -8,7 +8,7 @@ import {
   destroyTrayIcon,
   updateTrayIconImage,
 } from "node-tray"; // !!!!!!!! local !!!!!
-import path from "path";
+import { join } from "path";
 import WebSocket from "ws";
 import { biDirectionalSync } from "./biDirectionalSync.js";
 import { LOCAL_DIR, RECONNECT_DELAY, WEBSOCKET_URL } from "./consts.js";
@@ -19,6 +19,7 @@ import {
   upload,
 } from "./s3Operations.js";
 import { trackFileOperation } from "./trackFileOperation.js";
+import { ignoreFiles } from "./state.js";
 
 const recentLocalDeletions = new Set<string>();
 const recentDownloads = new Set<string>();
@@ -95,52 +96,48 @@ function connectWebSocket() {
 }
 
 async function downloadFile(key: string) {
-  const localPath = path.join(LOCAL_DIR, key);
-  if (recentUploads.has(localPath)) {
-    console.log(
-      `Skipping download for file recently uploaded to S3: ${localPath}`,
-    );
+  if (recentUploads.has(key)) {
+    console.log(`Skipping download for file recently uploaded to S3: ${key}`);
     return;
   }
 
   try {
-    recentDownloads.add(localPath);
+    recentDownloads.add(key);
 
-    await download(key, localPath);
+    await download(key, join(LOCAL_DIR, key));
 
     setTimeout(() => {
-      recentDownloads.delete(localPath);
+      recentDownloads.delete(key);
     }, RECENT_LOCAL_TIMEOUT);
   } catch (error) {
-    recentDownloads.delete(localPath);
+    recentDownloads.delete(key);
     console.error(`Error downloading file ${key}:`, error);
   }
 }
 
 async function removeLocalFile(key: string) {
-  const localPath = path.join(LOCAL_DIR, key);
-  if (recentDeletions.has(localPath)) {
+  if (recentDeletions.has(key)) {
     console.log(
-      `Skipping local removal for file recently deleted on S3: ${localPath}`,
+      `Skipping local removal for file recently deleted on S3: ${key}`,
     );
     return;
   }
 
   try {
-    recentLocalDeletions.add(localPath);
+    recentLocalDeletions.add(key);
 
-    await fs.unlink(localPath);
-    console.log(`Removed local file: ${localPath}`);
+    await fs.unlink(join(LOCAL_DIR, key));
+    console.log(`Removed local file: ${key}`);
 
     setTimeout(() => {
-      recentLocalDeletions.delete(localPath);
+      recentLocalDeletions.delete(key);
     }, RECENT_LOCAL_TIMEOUT);
   } catch (error) {
-    recentLocalDeletions.delete(localPath);
+    recentLocalDeletions.delete(key);
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      console.error(`Error removing local file ${localPath}:`, error);
+      console.error(`Error removing local file ${key}:`, error);
     } else {
-      console.log(`File ${localPath} already removed or doesn't exist.`);
+      console.log(`File ${key} already removed or doesn't exist.`);
     }
   }
 }
@@ -169,6 +166,10 @@ async function removeFile(localPath: string) {
 }
 
 async function syncFile(localPath: string) {
+  if (ignoreFiles.has(localPath)) {
+    return;
+  }
+
   const key = convertAbsolutePathToKey(localPath);
   if (recentDownloads.has(key)) {
     console.log(`Skipping upload for recently downloaded file: ${localPath}`);

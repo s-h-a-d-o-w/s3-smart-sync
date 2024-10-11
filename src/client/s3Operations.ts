@@ -8,7 +8,7 @@ import { mkdir, readFile, utimes, writeFile } from "node:fs/promises";
 import path, { relative } from "path";
 import { logger } from "../utils/logger.js";
 import { LOCAL_DIR, S3_BUCKET } from "./consts.js";
-import { s3Client } from "./state.js";
+import { ignoreFiles, s3Client } from "./state.js";
 
 export function convertAbsolutePathToKey(path: string) {
   return relative(LOCAL_DIR, path).replaceAll("\\", "/");
@@ -25,7 +25,12 @@ function getObjectInfo(key: string) {
 
 async function syncLastModified(localPath: string, lastModified?: Date) {
   if (lastModified) {
+    ignoreFiles.add(localPath);
     await utimes(localPath, lastModified, lastModified);
+    // Give chokidar an opportunity to get triggered.
+    setTimeout(() => {
+      ignoreFiles.delete(localPath);
+    }, 0);
   }
 }
 

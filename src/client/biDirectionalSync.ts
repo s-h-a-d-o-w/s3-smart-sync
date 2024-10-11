@@ -6,6 +6,7 @@ import { logger } from "../utils/logger.js";
 import { LOCAL_DIR, S3_BUCKET } from "./consts.js";
 import { convertAbsolutePathToKey, download, upload } from "./s3Operations.js";
 import { s3Client } from "./state.js";
+import { destroyTrayIcon } from "node-tray";
 
 type FileInfo = {
   key: string;
@@ -70,6 +71,7 @@ export async function biDirectionalSync() {
     logger.error(
       `No "last modified" date from S3 for file(s): ${noLastModifiedInfo.join(", ")}.\nPlease address this before starting the client again.`,
     );
+    destroyTrayIcon();
     process.exit(1);
   }
 

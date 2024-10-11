@@ -1,3 +1,4 @@
+import { destroyTrayIcon } from "node-tray";
 import { logger } from "../utils/logger.js";
 
 const fileOperations: Record<string, number[]> = {}; // <S3 key, timestamp[]>
@@ -25,6 +26,7 @@ export function trackFileOperation(key: string) {
     logger.error(
       `Unusually high amount of operations (more than 5 per second) on ${key} detected. Exiting...`,
     );
+    destroyTrayIcon();
     process.exit(1);
   }
 
