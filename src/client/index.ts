@@ -7,6 +7,7 @@ import {
   createTrayIcon,
   destroyTrayIcon,
   updateTrayIconImage,
+  updateTrayTooltip,
 } from "node-tray"; // !!!!!!!! local !!!!!
 import { join } from "path";
 import WebSocket from "ws";
@@ -56,6 +57,7 @@ function connectWebSocket() {
   ws.on("open", () => {
     console.log(`Connected to ${WEBSOCKET_URL}`);
     updateTrayIconImage("./assets/icon.ico");
+    updateTrayTooltip("S3 Smart Sync");
   });
 
   ws.on("message", async (data) => {
@@ -91,6 +93,7 @@ function connectWebSocket() {
   ws.on("close", () => {
     console.log("Disconnected from WebSocket server");
     updateTrayIconImage("./assets/icon_disconnected.ico");
+    updateTrayTooltip("S3 Smart Sync (Disconnected)");
     setTimeout(connectWebSocket, parseInt(RECONNECT_DELAY, 10));
   });
 }
