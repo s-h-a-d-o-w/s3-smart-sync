@@ -47,160 +47,167 @@ createTrayIcon({
   ],
 });
 
-// Ensure the local sync directory exists
-fs.mkdir(LOCAL_DIR, { recursive: true });
-await biDirectionalSync();
+async function main() {
+  // Ensure the local sync directory exists
+  fs.mkdir(LOCAL_DIR, { recursive: true });
+  await biDirectionalSync();
 
-function connectWebSocket() {
-  const ws = new WebSocket(WEBSOCKET_URL);
+  function connectWebSocket() {
+    const ws = new WebSocket(WEBSOCKET_URL);
 
-  ws.on("open", () => {
-    console.log(`Connected to ${WEBSOCKET_URL}`);
-    updateTrayIconImage("./assets/icon.ico");
-    updateTrayTooltip("S3 Smart Sync");
-  });
+    ws.on("open", () => {
+      console.log(`Connected to ${WEBSOCKET_URL}`);
+      updateTrayIconImage("./assets/icon.ico");
+      updateTrayTooltip("S3 Smart Sync");
+    });
 
-  ws.on("message", async (data) => {
-    try {
-      const message = JSON.parse(data.toString()) as SNSMessage;
-      if (message.Type === "Notification") {
-        const snsMessage = JSON.parse(message.Message) as S3Event;
+    ws.on("message", async (data) => {
+      try {
+        const message = JSON.parse(data.toString()) as SNSMessage;
+        if (message.Type === "Notification") {
+          const snsMessage = JSON.parse(message.Message) as S3Event;
 
-        for (const record of snsMessage.Records) {
-          const key = decodeURIComponent(
-            record.s3.object.key.replace(/\+/g, " "),
-          );
-          trackFileOperation(key);
-
-          if (record.eventName.startsWith("ObjectCreated:")) {
-            await downloadFile(key);
-          } else if (record.eventName.startsWith("ObjectRemoved:")) {
-            await removeLocalFile(key);
-          } else {
-            throw new Error(
-              "Received invalid record: " + JSON.stringify(record),
+          for (const record of snsMessage.Records) {
+            const key = decodeURIComponent(
+              record.s3.object.key.replace(/\+/g, " "),
             );
+
+            if (record.eventName.startsWith("ObjectCreated:")) {
+              await downloadFile(key);
+            } else if (record.eventName.startsWith("ObjectRemoved:")) {
+              await removeLocalFile(key);
+            } else {
+              throw new Error(
+                "Received invalid record: " + JSON.stringify(record),
+              );
+            }
           }
+        } else {
+          throw new Error(
+            "Received invalid message: " + JSON.stringify(message),
+          );
         }
-      } else {
-        throw new Error("Received invalid message: " + JSON.stringify(message));
+      } catch (error) {
+        console.error("Error processing WebSocket message: ", error);
       }
+    });
+
+    ws.on("close", () => {
+      console.log("Disconnected from WebSocket server");
+      updateTrayIconImage("./assets/icon_disconnected.ico");
+      updateTrayTooltip("S3 Smart Sync (Disconnected)");
+      setTimeout(connectWebSocket, parseInt(RECONNECT_DELAY, 10));
+    });
+  }
+
+  async function downloadFile(key: string) {
+    if (recentUploads.has(key)) {
+      console.log(`Skipping download for file recently uploaded to S3: ${key}`);
+      return;
+    }
+
+    try {
+      trackFileOperation(key);
+      recentDownloads.add(key);
+
+      await download(key, join(LOCAL_DIR, key));
+
+      setTimeout(() => {
+        recentDownloads.delete(key);
+      }, RECENT_LOCAL_TIMEOUT);
     } catch (error) {
-      console.error("Error processing WebSocket message: ", error);
-    }
-  });
-
-  ws.on("close", () => {
-    console.log("Disconnected from WebSocket server");
-    updateTrayIconImage("./assets/icon_disconnected.ico");
-    updateTrayTooltip("S3 Smart Sync (Disconnected)");
-    setTimeout(connectWebSocket, parseInt(RECONNECT_DELAY, 10));
-  });
-}
-
-async function downloadFile(key: string) {
-  if (recentUploads.has(key)) {
-    console.log(`Skipping download for file recently uploaded to S3: ${key}`);
-    return;
-  }
-
-  try {
-    recentDownloads.add(key);
-
-    await download(key, join(LOCAL_DIR, key));
-
-    setTimeout(() => {
       recentDownloads.delete(key);
-    }, RECENT_LOCAL_TIMEOUT);
-  } catch (error) {
-    recentDownloads.delete(key);
-    console.error(`Error downloading file ${key}:`, error);
-  }
-}
-
-async function removeLocalFile(key: string) {
-  if (recentDeletions.has(key)) {
-    console.log(
-      `Skipping local removal for file recently deleted on S3: ${key}`,
-    );
-    return;
-  }
-
-  try {
-    recentLocalDeletions.add(key);
-
-    await fs.unlink(join(LOCAL_DIR, key));
-    console.log(`Removed local file: ${key}`);
-
-    setTimeout(() => {
-      recentLocalDeletions.delete(key);
-    }, RECENT_LOCAL_TIMEOUT);
-  } catch (error) {
-    recentLocalDeletions.delete(key);
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      console.error(`Error removing local file ${key}:`, error);
-    } else {
-      console.log(`File ${key} already removed or doesn't exist.`);
+      console.error(`Error downloading file ${key}:`, error);
     }
   }
-}
 
-async function removeFile(localPath: string) {
-  const key = convertAbsolutePathToKey(localPath);
-  if (recentLocalDeletions.has(key)) {
-    console.log(
-      `Skipping repeated S3 removal for recently deleted file: ${localPath}`,
-    );
-    return;
+  async function removeLocalFile(key: string) {
+    if (recentDeletions.has(key)) {
+      console.log(
+        `Skipping local removal for file recently deleted on S3: ${key}`,
+      );
+      return;
+    }
+
+    try {
+      trackFileOperation(key);
+      recentLocalDeletions.add(key);
+
+      await fs.unlink(join(LOCAL_DIR, key));
+      console.log(`Removed local file: ${key}`);
+
+      setTimeout(() => {
+        recentLocalDeletions.delete(key);
+      }, RECENT_LOCAL_TIMEOUT);
+    } catch (error) {
+      recentLocalDeletions.delete(key);
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        console.error(`Error removing local file ${key}:`, error);
+      } else {
+        console.log(`File ${key} already removed or doesn't exist.`);
+      }
+    }
   }
 
-  try {
-    recentDeletions.add(key);
+  async function removeFile(localPath: string) {
+    const key = convertAbsolutePathToKey(localPath);
+    if (recentLocalDeletions.has(key)) {
+      console.log(
+        `Skipping repeating S3 removal for recently deleted file: ${localPath}`,
+      );
+      return;
+    }
 
-    await deleteObject(key);
+    try {
+      trackFileOperation(key);
+      recentDeletions.add(key);
 
-    setTimeout(() => {
+      await deleteObject(key);
+
+      setTimeout(() => {
+        recentDeletions.delete(key);
+      }, RECENT_REMOTE_TIMEOUT);
+    } catch (error) {
       recentDeletions.delete(key);
-    }, RECENT_REMOTE_TIMEOUT);
-  } catch (error) {
-    recentDeletions.delete(key);
-    console.error(`Error deleting file ${key} from S3:`, error);
-  }
-}
-
-async function syncFile(localPath: string) {
-  if (ignoreFiles.has(localPath)) {
-    return;
+      console.error(`Error deleting file ${key} from S3:`, error);
+    }
   }
 
-  const key = convertAbsolutePathToKey(localPath);
-  if (recentDownloads.has(key)) {
-    console.log(`Skipping upload for recently downloaded file: ${localPath}`);
-    return;
-  }
+  async function syncFile(localPath: string) {
+    if (ignoreFiles.has(localPath)) {
+      return;
+    }
 
-  trackFileOperation(key);
+    const key = convertAbsolutePathToKey(localPath);
+    if (recentDownloads.has(key)) {
+      console.log(`Skipping upload for recently downloaded file: ${localPath}`);
+      return;
+    }
 
-  try {
-    recentUploads.add(key);
+    try {
+      trackFileOperation(key);
+      recentUploads.add(key);
 
-    await upload(localPath, key);
+      await upload(localPath, key);
 
-    setTimeout(() => {
+      setTimeout(() => {
+        recentUploads.delete(key);
+      }, RECENT_REMOTE_TIMEOUT);
+    } catch (error) {
       recentUploads.delete(key);
-    }, RECENT_REMOTE_TIMEOUT);
-  } catch (error) {
-    recentUploads.delete(key);
-    console.error(`Error uploading file ${key}:`, error);
+      console.error(`Error uploading file ${key}:`, error);
+    }
   }
+
+  // Don't use for`awaitWriteFinish` because that would cause conflicts with the RECENT_TIMEOUT. Because that time only starts once writing has finished, potential `add` events during writing are ignored anyway.
+  const watcher = chokidar.watch(LOCAL_DIR, {
+    ignoreInitial: true,
+  });
+  watcher.on("add", syncFile).on("change", syncFile).on("unlink", removeFile);
+
+  console.log(`Watching for changes in ${LOCAL_DIR}`);
+
+  connectWebSocket();
 }
 
-// Don't use for`awaitWriteFinish` because that would cause conflicts with the RECENT_TIMEOUT. Because that time only starts once writing has finished, potential `add` events during writing are ignored anyway.
-const watcher = chokidar.watch(LOCAL_DIR, {
-  ignoreInitial: true,
-});
-watcher.on("add", syncFile).on("change", syncFile).on("unlink", removeFile);
-
-console.log(`Watching for changes in ${LOCAL_DIR}`);
-
-connectWebSocket();
+main();
