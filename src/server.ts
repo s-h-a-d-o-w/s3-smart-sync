@@ -60,6 +60,7 @@ app.post("/sns", async (req, res) => {
         console.error("Error confirming SNS subscription:", error);
       }
     } else {
+      console.log(`Will forward a ${message.Type} to ${clients.size} clients.`);
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify(message));
