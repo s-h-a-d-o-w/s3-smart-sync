@@ -1,28 +1,20 @@
 import "dotenv/config";
 
-import { S3Event, SNSMessage } from "aws-lambda";
-import chokidar from "chokidar";
 import fs, { stat } from "fs/promises";
-import {
-  createTrayIcon,
-  destroyTrayIcon,
-  updateTrayIconImage,
-  updateTrayTooltip,
-} from "node-tray"; // !!!!!!!! local !!!!!
+import { createTrayIcon, destroyTrayIcon } from "node-tray"; // !!!!!!!! local !!!!!
 import { join } from "path";
-import WebSocket from "ws";
+import { logger } from "../utils/logger.js";
 import { biDirectionalSync } from "./biDirectionalSync.js";
-import { LOCAL_DIR, RECONNECT_DELAY, WEBSOCKET_URL } from "./consts.js";
+import { LOCAL_DIR } from "./consts.js";
 import {
   convertAbsolutePathToKey,
   deleteObject,
   download,
   upload,
 } from "./s3Operations.js";
+import { setUpFileWatcher } from "./setUpFileWatcher.js";
+import { setUpWebsocket } from "./setUpWebsocket.js";
 import { trackFileOperation } from "./trackFileOperation.js";
-import { ignoreFiles } from "./state.js";
-import debounce from "lodash/debounce.js";
-import { logger } from "../utils/logger.js";
 
 const recentLocalDeletions = new Set<string>();
 const recentDownloads = new Set<string>();
@@ -53,54 +45,6 @@ async function main() {
   // Ensure the local sync directory exists
   fs.mkdir(LOCAL_DIR, { recursive: true });
   await biDirectionalSync();
-
-  function connectWebSocket() {
-    const ws = new WebSocket(WEBSOCKET_URL);
-
-    ws.on("open", () => {
-      logger.info(`Connected to ${WEBSOCKET_URL}`);
-      updateTrayIconImage("./assets/icon.ico");
-      updateTrayTooltip("S3 Smart Sync");
-    });
-
-    ws.on("message", async (data) => {
-      try {
-        const message = JSON.parse(data.toString()) as SNSMessage;
-        if (message.Type === "Notification") {
-          const snsMessage = JSON.parse(message.Message) as S3Event;
-
-          for (const record of snsMessage.Records) {
-            const key = decodeURIComponent(
-              record.s3.object.key.replace(/\+/g, " "),
-            );
-
-            if (record.eventName.startsWith("ObjectCreated:")) {
-              await downloadFile(key);
-            } else if (record.eventName.startsWith("ObjectRemoved:")) {
-              await removeLocalFile(key);
-            } else {
-              throw new Error(
-                "Received invalid record: " + JSON.stringify(record),
-              );
-            }
-          }
-        } else {
-          throw new Error(
-            "Received invalid message: " + JSON.stringify(message),
-          );
-        }
-      } catch (error) {
-        logger.error("Error processing WebSocket message: ", error);
-      }
-    });
-
-    ws.on("close", () => {
-      logger.info("Disconnected from WebSocket server");
-      updateTrayIconImage("./assets/icon_disconnected.ico");
-      updateTrayTooltip("S3 Smart Sync (Disconnected)");
-      setTimeout(connectWebSocket, parseInt(RECONNECT_DELAY, 10));
-    });
-  }
 
   async function downloadFile(key: string) {
     if (recentUploads.has(key)) {
@@ -212,60 +156,8 @@ async function main() {
     }
   }
 
-  // Don't use for`awaitWriteFinish` because that would cause conflicts with the RECENT_TIMEOUT. Because that time only starts once writing has finished, potential `add` events during writing are ignored anyway.
-  const watcher = chokidar.watch(LOCAL_DIR, {
-    ignoreInitial: true,
-  });
-
-  const debounceMap: Record<string, () => void> = {};
-  function getDebouncedFunction(
-    which: "sync" | "remove",
-    localPath: string,
-  ): () => void {
-    const key = which + localPath;
-    if (!debounceMap[key]) {
-      debounceMap[key] = debounce(() => {
-        if (which === "sync") {
-          syncFile(localPath);
-        } else {
-          removeFile(localPath);
-        }
-
-        delete debounceMap[key];
-      }, 500);
-    }
-    return debounceMap[key];
-  }
-
-  const wrappedDebouncedSyncFile = (localPath: string) => {
-    // Ignore triggers caused by timestamp syncing.
-    if (ignoreFiles.has(localPath)) {
-      logger.debug(`debouncedSyncFile: ignored ${localPath}.`);
-      return;
-    }
-
-    logger.debug(`debouncedSyncFile: triggering syncing ${localPath}.`);
-    getDebouncedFunction("sync", localPath)();
-  };
-  const wrappedDebouncedRemoveFile = (localPath: string) => {
-    // Ignore triggers caused by timestamp syncing.
-    if (ignoreFiles.has(localPath)) {
-      logger.debug(`debouncedRemoveFile: ignored ${localPath}.`);
-      return;
-    }
-
-    logger.debug(`debouncedRemoveFile: triggering removing ${localPath}.`);
-    getDebouncedFunction("remove", localPath)();
-  };
-
-  watcher
-    .on("add", wrappedDebouncedSyncFile)
-    .on("change", wrappedDebouncedSyncFile)
-    .on("unlink", wrappedDebouncedRemoveFile);
-
-  logger.info(`Watching for changes in ${LOCAL_DIR}`);
-
-  connectWebSocket();
+  setUpFileWatcher(syncFile, removeFile);
+  setUpWebsocket(downloadFile, removeLocalFile);
 }
 
 main();
