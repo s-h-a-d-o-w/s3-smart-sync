@@ -1,6 +1,10 @@
 # s3-smart-sync
 
-## Initial S3 bucket copy must be done manually! This only syncs changes.
+I'm using this myself daily, to sync notes and other files between between desktop and tablet (Using Cryptomator, since one can't trust Amazon.)
+
+**As a general rule - don't change/delete files unless the tool is idle (green icon or no log output)!** (It's fine to e.g. drag and drop a ton of files but you will probably run into a problem particularly if you edit the same file repeatedly within a few seconds.)
+
+**Make backups of your data regularly!**
 
 # Dev notes
 
