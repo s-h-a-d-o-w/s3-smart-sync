@@ -1,4 +1,4 @@
-import { ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { _Object, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { statSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -19,12 +19,16 @@ async function listS3Files() {
   const noLastModifiedInfo: string[] = [];
 
   do {
-    const response = await s3Client.send(
+    const { Contents, NextContinuationToken } = (await s3Client.send(
       new ListObjectsV2Command({
         Bucket: S3_BUCKET,
+        ...(continuationToken ? { ContinuationToken: continuationToken } : {}),
       }),
-    );
-    response.Contents?.forEach(({ Key, LastModified }) => {
+    )) as {
+      Contents?: _Object[];
+      NextContinuationToken: string | undefined;
+    };
+    Contents?.forEach(({ Key, LastModified }) => {
       if (Key?.endsWith("/")) {
         // Ignore directories
         return;
@@ -34,7 +38,7 @@ async function listS3Files() {
         noLastModifiedInfo.push(Key);
       }
     });
-    continuationToken = response.NextContinuationToken;
+    continuationToken = NextContinuationToken;
   } while (continuationToken);
 
   return [files, noLastModifiedInfo] as const;
@@ -61,7 +65,7 @@ async function listLocalFiles(dir: string) {
 
 // This sync is obviously purely additive because we can't know about possible deletions that happened in the past.
 export async function biDirectionalSync() {
-  console.log("Starting initial sync...");
+  logger.info("Starting initial sync...");
 
   const [localFiles, [s3Files, noLastModifiedInfo]] = await Promise.all([
     listLocalFiles(LOCAL_DIR),
@@ -110,5 +114,5 @@ export async function biDirectionalSync() {
     },
   );
 
-  console.log("Done.\n");
+  logger.info("Done.\n");
 }

@@ -4,6 +4,11 @@
 
 # Dev notes
 
+- Multiple strategies are needed to prevent infinite loops:  
+1. Whenever we do something on S3, it triggers SNS and we would repeat the same thing locally that we just did on S3, which would result in syncing to S3, then SNS => infinite loop. To avoid this, there are the `recent...` operations Sets.
+1. Timestamps on the local drive have to be synced to S3 - but doing that triggers chokidar. For that, there are `ignoreFiles` in global state.
+1. Allowing frequent operations on the same file (which Cryptomator does), is done using the following: All local operations are debounced. If even with debouncing, the same file keeps changing, the client exits at some point because then it's probably a bug.
+
 - `tsimp` fails without providing an error message, `tsx` works. 🤷‍♀️
 
 ```

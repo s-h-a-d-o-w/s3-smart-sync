@@ -10,6 +10,7 @@ const myFormat = combine(
 );
 
 export const logger = winston.createLogger({
+  // level: "debug",
   format: myFormat,
   transports: [
     new winston.transports.File({ filename: "error.log", level: "error" }),

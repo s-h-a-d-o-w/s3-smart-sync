@@ -26,11 +26,13 @@ function getObjectInfo(key: string) {
 async function syncLastModified(localPath: string, lastModified?: Date) {
   if (lastModified) {
     ignoreFiles.add(localPath);
+    logger.debug(`syncLastModified: added ${localPath} to ignore files.`);
     await utimes(localPath, lastModified, lastModified);
     // Give chokidar an opportunity to get triggered.
     setTimeout(() => {
       ignoreFiles.delete(localPath);
-    }, 0);
+      logger.debug(`syncLastModified: removed ${localPath} from ignore files.`);
+    }, 100);
   }
 }
 
@@ -42,7 +44,7 @@ export async function deleteObject(key: string) {
     }),
   );
 
-  console.log(`Deleted from S3: ${key}`);
+  logger.info(`Deleted from S3: ${key}`);
 }
 
 export async function download(key: string, localPath: string) {
@@ -58,7 +60,7 @@ export async function download(key: string, localPath: string) {
     await writeFile(localPath, await Body.transformToByteArray());
     await syncLastModified(localPath, LastModified);
 
-    console.log(`Downloaded: ${key}`);
+    logger.info(`Downloaded: ${key}`);
   } else {
     // TODO: Might make sense to retry a couple of times at increasing intervals.
     logger.error(`Couldn't get file data for: ${key}`);
@@ -78,5 +80,5 @@ export async function upload(localPath: string, key: string) {
   // We have to sync timestamps to avoid redundant, potentially infinite, operations in the future.
   await syncLastModified(localPath, (await getObjectInfo(key)).LastModified);
 
-  console.log(`Uploaded: ${key}`);
+  logger.info(`Uploaded: ${key}`);
 }
