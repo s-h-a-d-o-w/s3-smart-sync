@@ -1,8 +1,9 @@
-import { SNSMessage, S3Event } from "aws-lambda";
-import { updateTrayIconImage, updateTrayTooltip } from "node-tray";
-import { logger } from "../utils/logger";
-import { WEBSOCKET_URL, RECONNECT_DELAY } from "./consts";
+import { S3Event, SNSMessage } from "aws-lambda";
+import { updateTrayTooltip } from "node-tray";
 import WebSocket from "ws";
+import { logger } from "../utils/logger";
+import { RECONNECT_DELAY, WEBSOCKET_URL } from "./consts";
+import { changeTrayIconState, TrayIconState } from "./setUpTrayIcon";
 
 type RemoteToLocalOperation = (key: string) => void;
 
@@ -14,7 +15,7 @@ export function setUpWebsocket(
 
   ws.on("open", () => {
     logger.info(`Connected to ${WEBSOCKET_URL}`);
-    updateTrayIconImage("./assets/icon.ico");
+    changeTrayIconState(TrayIconState.Idle);
     updateTrayTooltip("S3 Smart Sync");
   });
 
@@ -49,7 +50,7 @@ export function setUpWebsocket(
 
   ws.on("close", () => {
     logger.info("Disconnected from WebSocket server");
-    updateTrayIconImage("./assets/icon_disconnected.ico");
+    changeTrayIconState(TrayIconState.Disconnected);
     updateTrayTooltip("S3 Smart Sync (Disconnected)");
     setTimeout(setUpWebsocket, parseInt(RECONNECT_DELAY, 10));
   });

@@ -1,7 +1,6 @@
 import "dotenv/config";
 
 import fs, { stat } from "fs/promises";
-import { createTrayIcon, destroyTrayIcon } from "node-tray"; // !!!!!!!! local !!!!!
 import { join } from "path";
 import { logger } from "../utils/logger.js";
 import { biDirectionalSync } from "./biDirectionalSync.js";
@@ -15,6 +14,11 @@ import {
 import { setUpFileWatcher } from "./setUpFileWatcher.js";
 import { setUpWebsocket } from "./setUpWebsocket.js";
 import { trackFileOperation } from "./trackFileOperation.js";
+import {
+  changeTrayIconState,
+  setUpTrayIcon,
+  TrayIconState,
+} from "./setUpTrayIcon.js";
 
 const recentLocalDeletions = new Set<string>();
 const recentDownloads = new Set<string>();
@@ -25,23 +29,9 @@ const RECENT_REMOTE_TIMEOUT = 3000;
 // Time between writing the download has finished and chokidar hopefully getting triggered earlier than this. May have to be increased for slow local drives but then one has to watch out not to actually change the same file within a period shorter than this.
 const RECENT_LOCAL_TIMEOUT = 500;
 
-createTrayIcon({
-  icon: "./assets/icon_disconnected.ico",
-  tooltip: "S3 Smart Sync",
-  items: [
-    {
-      id: Symbol(),
-      text: "Exit",
-      onClick: () => {
-        logger.info("Exiting...");
-        destroyTrayIcon();
-        process.exit(0);
-      },
-    },
-  ],
-});
-
 async function main() {
+  setUpTrayIcon();
+
   // Ensure the local sync directory exists
   fs.mkdir(LOCAL_DIR, { recursive: true });
   await biDirectionalSync();
@@ -55,12 +45,14 @@ async function main() {
     try {
       recentDownloads.add(key);
       logger.debug(`downloadFile: added ${key} to recent downloads`);
+      changeTrayIconState(TrayIconState.Busy);
 
       const fullPath = join(LOCAL_DIR, key);
       await download(key, fullPath);
       const { size } = await stat(fullPath);
       trackFileOperation(key, size);
 
+      changeTrayIconState(TrayIconState.Idle);
       setTimeout(() => {
         recentDownloads.delete(key);
         logger.debug(`downloadFile: removed ${key} from recent downloads`);
@@ -82,11 +74,13 @@ async function main() {
     try {
       recentLocalDeletions.add(key);
       logger.debug(`removeLocalFile: added ${key} to recent local deletions`);
+      changeTrayIconState(TrayIconState.Busy);
 
       await fs.unlink(join(LOCAL_DIR, key));
       trackFileOperation(key);
       logger.info(`Removed local file: ${key}`);
 
+      changeTrayIconState(TrayIconState.Idle);
       setTimeout(() => {
         recentLocalDeletions.delete(key);
         logger.debug(
@@ -115,10 +109,12 @@ async function main() {
     try {
       recentDeletions.add(key);
       logger.debug(`removeFile: added ${localPath} to recent S3 deletions`);
+      changeTrayIconState(TrayIconState.Busy);
 
       await deleteObject(key);
       trackFileOperation(key);
 
+      changeTrayIconState(TrayIconState.Idle);
       setTimeout(() => {
         recentDeletions.delete(key);
         logger.debug(
@@ -141,11 +137,13 @@ async function main() {
     try {
       recentUploads.add(key);
       logger.debug(`syncFile: added ${localPath} to recent uploads`);
+      changeTrayIconState(TrayIconState.Busy);
 
       await upload(localPath, key);
       const { size } = await stat(localPath);
       trackFileOperation(key, size);
 
+      changeTrayIconState(TrayIconState.Idle);
       setTimeout(() => {
         recentUploads.delete(key);
         logger.debug(`syncFile: removed ${localPath} from recent uploads`);
