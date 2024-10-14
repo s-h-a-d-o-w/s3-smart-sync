@@ -41,7 +41,7 @@ export function changeTrayIconState(trayIconState: TrayIconState) {
 export function setUpTrayIcon() {
   createTrayIcon({
     icon: "./assets/icon_disconnected.ico",
-    tooltip: "S3 Smart Sync",
+    tooltip: "S3 Smart Sync (Disconnected)",
     items: [
       {
         id: Symbol(),

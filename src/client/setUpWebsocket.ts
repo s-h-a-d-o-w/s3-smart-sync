@@ -5,6 +5,7 @@ import { logger } from "../utils/logger";
 import { RECONNECT_DELAY, WEBSOCKET_URL } from "./consts";
 import { changeTrayIconState, TrayIconState } from "./setUpTrayIcon";
 import { getErrorMessage } from "../utils/getErrorMessage";
+import { biDirectionalSync } from "./biDirectionalSync";
 
 type RemoteToLocalOperation = (key: string) => void;
 
@@ -14,10 +15,11 @@ export function setUpWebsocket(
 ) {
   const ws = new WebSocket(WEBSOCKET_URL);
 
-  ws.on("open", () => {
+  ws.on("open", async () => {
     logger.info(`Connected to ${WEBSOCKET_URL}`);
-    changeTrayIconState(TrayIconState.Idle);
     updateTrayTooltip("S3 Smart Sync");
+    await biDirectionalSync();
+    changeTrayIconState(TrayIconState.Idle);
   });
 
   ws.on("message", async (data) => {

@@ -3,7 +3,6 @@ import "dotenv/config";
 import fs, { stat } from "fs/promises";
 import { join } from "path";
 import { logger } from "../utils/logger.js";
-import { biDirectionalSync } from "./biDirectionalSync.js";
 import { LOCAL_DIR } from "./consts.js";
 import {
   convertAbsolutePathToKey,
@@ -30,12 +29,11 @@ const RECENT_REMOTE_TIMEOUT = 3000;
 // Time between writing the download has finished and chokidar hopefully getting triggered earlier than this. May have to be increased for slow local drives but then one has to watch out not to actually change the same file within a period shorter than this.
 const RECENT_LOCAL_TIMEOUT = 500;
 
-async function main() {
+function main() {
   setUpTrayIcon();
 
   // Ensure the local sync directory exists
   fs.mkdir(LOCAL_DIR, { recursive: true });
-  await biDirectionalSync();
 
   async function downloadFile(key: string) {
     if (recentUploads.has(key)) {

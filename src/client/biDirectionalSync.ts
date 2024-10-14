@@ -64,8 +64,14 @@ async function listLocalFiles(dir: string) {
 }
 
 // This sync is obviously purely additive because we can't know about possible deletions that happened in the past.
+let isSyncInProgress = false;
 export async function biDirectionalSync() {
-  logger.info("Starting initial sync...");
+  if (isSyncInProgress) {
+    return;
+  }
+
+  logger.info("Starting full sync...");
+  isSyncInProgress = true;
 
   const [localFiles, [s3Files, noLastModifiedInfo]] = await Promise.all([
     listLocalFiles(LOCAL_DIR),
@@ -114,5 +120,6 @@ export async function biDirectionalSync() {
     },
   );
 
+  isSyncInProgress = false;
   logger.info("Done.\n");
 }
