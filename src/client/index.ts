@@ -19,6 +19,7 @@ import {
   setUpTrayIcon,
   TrayIconState,
 } from "./setUpTrayIcon.js";
+import { getErrorMessage } from "../utils/getErrorMessage";
 
 const recentLocalDeletions = new Set<string>();
 const recentDownloads = new Set<string>();
@@ -59,7 +60,7 @@ async function main() {
       }, RECENT_LOCAL_TIMEOUT);
     } catch (error) {
       recentDownloads.delete(key);
-      logger.error(`Error downloading file ${key}:`, error);
+      logger.error(`Error downloading file ${key}: ${getErrorMessage(error)}`);
     }
   }
 
@@ -90,7 +91,9 @@ async function main() {
     } catch (error) {
       recentLocalDeletions.delete(key);
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        logger.error(`Error removing local file ${key}:`, error);
+        logger.error(
+          `Error removing local file ${key}: ${getErrorMessage(error)}`,
+        );
       } else {
         logger.info(`File ${key} already removed or doesn't exist.`);
       }
@@ -123,7 +126,9 @@ async function main() {
       }, RECENT_REMOTE_TIMEOUT);
     } catch (error) {
       recentDeletions.delete(key);
-      logger.error(`Error deleting file ${key} from S3:`, error);
+      logger.error(
+        `Error deleting file ${key} from S3: ${getErrorMessage(error)}`,
+      );
     }
   }
 
@@ -150,7 +155,7 @@ async function main() {
       }, RECENT_REMOTE_TIMEOUT);
     } catch (error) {
       recentUploads.delete(key);
-      logger.error(`Error uploading file ${key}:`, error);
+      logger.error(`Error uploading file ${key}: ${getErrorMessage(error)}`);
     }
   }
 

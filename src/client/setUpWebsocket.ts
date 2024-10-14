@@ -4,6 +4,7 @@ import WebSocket from "ws";
 import { logger } from "../utils/logger";
 import { RECONNECT_DELAY, WEBSOCKET_URL } from "./consts";
 import { changeTrayIconState, TrayIconState } from "./setUpTrayIcon";
+import { getErrorMessage } from "../utils/getErrorMessage";
 
 type RemoteToLocalOperation = (key: string) => void;
 
@@ -44,7 +45,9 @@ export function setUpWebsocket(
         throw new Error("Received invalid message: " + JSON.stringify(message));
       }
     } catch (error) {
-      logger.error("Error processing WebSocket message: ", error);
+      logger.error(
+        `Error processing WebSocket message: ${getErrorMessage(error)}`,
+      );
     }
   });
 
