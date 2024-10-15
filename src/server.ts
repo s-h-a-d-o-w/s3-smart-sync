@@ -99,7 +99,7 @@ setInterval(function ping() {
     client.isAlive = false;
     client.ping();
   });
-}, 30000);
+}, 5000);
 
 server.listen(80, () => {
   console.log(`Server is running.`);
