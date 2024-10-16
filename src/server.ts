@@ -13,6 +13,10 @@ interface ExtendedWebSocket extends WebSocket {
   isAlive?: boolean;
 }
 
+const HEARTBEAT_INTERVAL = parseInt(
+  process.env["HEARTBEAT_INTERVAL"] || "5000",
+  10,
+);
 const { AWS_REGION, ACCESS_KEY, SECRET_KEY } = getEnvironmentVariables(
   "AWS_REGION",
   "ACCESS_KEY",
@@ -99,7 +103,7 @@ setInterval(function ping() {
     client.isAlive = false;
     client.ping();
   });
-}, 5000);
+}, HEARTBEAT_INTERVAL);
 
 server.listen(80, () => {
   console.log(`Server is running.`);

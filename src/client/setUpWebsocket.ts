@@ -74,7 +74,7 @@ export function setUpWebsocket(
       updateTrayTooltip("S3 Smart Sync (Disconnected)");
       setTimeout(
         setUpWebsocket,
-        parseInt(RECONNECT_DELAY, 10),
+        RECONNECT_DELAY,
         downloadFile,
         removeLocalFile,
       );
