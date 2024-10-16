@@ -29,7 +29,7 @@ const RECENT_REMOTE_TIMEOUT = 3000;
 // Time between writing the download has finished and chokidar hopefully getting triggered earlier than this. May have to be increased for slow local drives but then one has to watch out not to actually change the same file within a period shorter than this.
 const RECENT_LOCAL_TIMEOUT = 500;
 
-function main() {
+async function main() {
   setUpTrayIcon();
 
   // Ensure the local sync directory exists
@@ -157,8 +157,9 @@ function main() {
     }
   }
 
+  // Ensure that initial syncing happened BEFORE we start to watch local file changes.
+  await setUpWebsocket(downloadFile, removeLocalFile);
   setUpFileWatcher(syncFile, removeFile);
-  setUpWebsocket(downloadFile, removeLocalFile);
 }
 
 main();
