@@ -1,4 +1,4 @@
-import chokidar from "chokidar";
+import chokidar, { FSWatcher } from "chokidar";
 import debounce from "lodash/debounce.js";
 import { logger } from "../utils/logger.js";
 import { LOCAL_DIR } from "./consts.js";
@@ -6,12 +6,26 @@ import { ignoreFiles } from "./state.js";
 
 type LocalToRemoteOperation = (localPath: string) => void;
 
+let watcher: FSWatcher | undefined;
+
+export function suspendFileWatcher() {
+  if (watcher) {
+    watcher.unwatch(LOCAL_DIR);
+  }
+}
+
+export function resumeFileWatcher() {
+  if (watcher) {
+    watcher.add(LOCAL_DIR);
+  }
+}
+
 export function setUpFileWatcher(
   syncFile: LocalToRemoteOperation,
   removeFile: LocalToRemoteOperation,
 ) {
   // Don't use for`awaitWriteFinish` because that would cause conflicts with the RECENT_TIMEOUT. Because that time only starts once writing has finished, potential `add` events during writing are ignored anyway.
-  const watcher = chokidar.watch(LOCAL_DIR, {
+  watcher = chokidar.watch(LOCAL_DIR, {
     ignoreInitial: true,
   });
 

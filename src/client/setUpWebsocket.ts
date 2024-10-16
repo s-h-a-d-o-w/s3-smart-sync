@@ -6,6 +6,7 @@ import { RECONNECT_DELAY, WEBSOCKET_URL } from "./consts";
 import { changeTrayIconState, TrayIconState } from "./setUpTrayIcon";
 import { getErrorMessage } from "../utils/getErrorMessage";
 import { biDirectionalSync } from "./biDirectionalSync";
+import { resumeFileWatcher, suspendFileWatcher } from "./setUpFileWatcher";
 
 type RemoteToLocalOperation = (key: string) => void;
 
@@ -26,7 +27,12 @@ export function setUpWebsocket(
     ws.on("open", async () => {
       logger.info(`Connected to ${WEBSOCKET_URL}`);
       updateTrayTooltip("S3 Smart Sync");
+
+      // Although we have the promise for the initial file watcher creation, we have to suspend here in case of reconnects.
+      suspendFileWatcher();
       await biDirectionalSync();
+      resumeFileWatcher();
+
       changeTrayIconState(TrayIconState.Idle);
       resolve();
     });
