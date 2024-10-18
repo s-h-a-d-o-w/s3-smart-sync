@@ -4,24 +4,11 @@ import {
   HeadObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import { mkdir, readFile, utimes, writeFile } from "node:fs/promises";
-import path, { relative } from "path";
+import { mkdir, readFile, stat, utimes, writeFile } from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
 import { logger } from "../utils/logger.js";
 import { LOCAL_DIR, S3_BUCKET } from "./consts.js";
 import { ignoreFiles, s3Client } from "./state.js";
-
-export function convertAbsolutePathToKey(path: string) {
-  return relative(LOCAL_DIR, path).replaceAll("\\", "/");
-}
-
-function getObjectInfo(key: string) {
-  return s3Client.send(
-    new HeadObjectCommand({
-      Bucket: S3_BUCKET,
-      Key: key,
-    }),
-  );
-}
 
 async function syncLastModified(localPath: string, lastModified?: Date) {
   if (lastModified) {
@@ -36,6 +23,21 @@ async function syncLastModified(localPath: string, lastModified?: Date) {
   }
 }
 
+export function convertAbsolutePathToKey(path: string) {
+  return relative(LOCAL_DIR, path).replaceAll("\\", "/");
+}
+
+export async function getLastModified(key: string) {
+  return (
+    await s3Client.send(
+      new HeadObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: key,
+      }),
+    )
+  ).LastModified;
+}
+
 export async function deleteObject(key: string) {
   await s3Client.send(
     new DeleteObjectCommand({
@@ -48,6 +50,7 @@ export async function deleteObject(key: string) {
 }
 
 export async function download(key: string, localPath: string) {
+  logger.info(`Downloading: ${key}`);
   const { Body, LastModified } = await s3Client.send(
     new GetObjectCommand({
       Bucket: S3_BUCKET,
@@ -56,7 +59,7 @@ export async function download(key: string, localPath: string) {
   );
 
   if (Body) {
-    await mkdir(path.dirname(localPath), { recursive: true });
+    await mkdir(dirname(localPath), { recursive: true });
     await writeFile(localPath, await Body.transformToByteArray());
     await syncLastModified(localPath, LastModified);
 
@@ -68,6 +71,7 @@ export async function download(key: string, localPath: string) {
 }
 
 export async function upload(localPath: string, key: string) {
+  logger.info(`Uploading: ${key}`);
   const fileContent = await readFile(localPath);
   await s3Client.send(
     new PutObjectCommand({
@@ -78,7 +82,20 @@ export async function upload(localPath: string, key: string) {
   );
 
   // We have to sync timestamps to avoid redundant, potentially infinite, operations in the future.
-  await syncLastModified(localPath, (await getObjectInfo(key)).LastModified);
-
+  await syncLastModified(localPath, await getLastModified(key));
   logger.info(`Uploaded: ${key}`);
+}
+
+export async function upToDate(key: string) {
+  const fullPath = join(LOCAL_DIR, key);
+
+  const lastModifiedRemote = await getLastModified(key);
+  let lastModifiedLocal: Date | undefined;
+  try {
+    lastModifiedLocal = (await stat(fullPath)).mtime;
+  } catch (e) {
+    // File doesn't exist locally
+  }
+
+  return lastModifiedLocal?.valueOf() === lastModifiedRemote?.valueOf();
 }

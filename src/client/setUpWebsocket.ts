@@ -1,12 +1,12 @@
 import { S3Event, SNSMessage } from "aws-lambda";
 import { updateTrayTooltip } from "node-tray";
 import WebSocket from "ws";
-import { logger } from "../utils/logger";
-import { RECONNECT_DELAY, WEBSOCKET_URL } from "./consts";
-import { changeTrayIconState, TrayIconState } from "./setUpTrayIcon";
-import { getErrorMessage } from "../utils/getErrorMessage";
-import { biDirectionalSync } from "./biDirectionalSync";
-import { resumeFileWatcher, suspendFileWatcher } from "./setUpFileWatcher";
+import { getErrorMessage } from "../utils/getErrorMessage.js";
+import { logger } from "../utils/logger.js";
+import { biDirectionalSync } from "./biDirectionalSync.js";
+import { RECONNECT_DELAY, WEBSOCKET_URL } from "./consts.js";
+import { resumeFileWatcher, suspendFileWatcher } from "./setUpFileWatcher.js";
+import { changeTrayIconState, TrayIconState } from "./setUpTrayIcon.js";
 
 type RemoteToLocalOperation = (key: string) => void;
 

@@ -3,8 +3,8 @@ import {
   destroyTrayIcon,
   updateTrayIconImage,
 } from "node-tray";
-import { logger } from "../utils/logger";
-import debounce from "lodash/debounce";
+import { logger } from "../utils/logger.js";
+import debounce from "lodash/debounce.js";
 
 export enum TrayIconState {
   Idle,
