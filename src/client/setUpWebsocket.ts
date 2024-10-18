@@ -27,6 +27,7 @@ export function setUpWebsocket(
     ws.on("open", async () => {
       logger.info(`Connected to ${WEBSOCKET_URL}`);
       updateTrayTooltip("S3 Smart Sync");
+      changeTrayIconState(TrayIconState.Busy);
 
       // Although we have the promise for the initial file watcher creation, we have to suspend here in case of reconnects.
       suspendFileWatcher();
