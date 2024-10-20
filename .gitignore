@@ -1,5 +1,10 @@
 .env
 .tsimp
+/build
 /node_modules
+dist
 
+*.blob
+*.exe
+*.zip
 *.log

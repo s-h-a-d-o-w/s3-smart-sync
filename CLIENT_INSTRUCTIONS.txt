@@ -1,0 +1,4 @@
+1. Fill in required client variables in .env
+2. Run the .exe
+
+(Optional: If you want the tray icon to look prettier, you have to manually enable the compatibility setting -> high DPI -> scaling behavior performed by: application.)

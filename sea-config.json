@@ -1,0 +1,6 @@
+{
+  "main": "./dist/index.cjs",
+  "output": "client.blob",
+  "disableExperimentalSEAWarning": true,
+  "useCodeCache": true
+}

@@ -5,9 +5,11 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
+    "build": "rimraf dist && esbuild ./src/client/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.cjs",
+    "build:exe": "pnpm build && build.bat",
+    "postbuild:exe": "postbuild.bat",
     "start": "tsx .",
     "start:client": "tsx ./src/client",
-    "build": "rimraf dist && tsc -p ./src/client/tsconfig.json",
     "lint": "eslint ."
   },
   "devDependencies": {
@@ -19,7 +21,7 @@
     "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "7.14.1",
     "@typescript-eslint/parser": "7.14.1",
-    "aws-lambda": "^1.0.7",
+    "esbuild": "^0.24.0",
     "eslint": "8.57.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-prettier": "5.1.3",

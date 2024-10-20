@@ -11,7 +11,7 @@ If you want the tray icon to look prettier, you have to manually enable the comp
 # How to use
 
 - Deploy the server using Dockerfile or of course cloning and doing what's in Dockerfile directly on the server. (Messages sent by the server contain file paths, so I strongly recommend using WSS. If you deploy using CapRover, you can simply enable HTTPS/websockets and it'll take care of the letsencrypt certificate renewal.)
-- Clone on your client and run `install` and `start:client`. (Or use the prebuilt binary data that I will probably put into releases here.)
+- Clone this on your client machine(s) and run `install` and `start:client`. (Or use the prebuilt .exe from releases.)
 
 # Dev notes
 

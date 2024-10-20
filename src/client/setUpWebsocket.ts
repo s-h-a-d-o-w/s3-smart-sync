@@ -1,4 +1,4 @@
-import { S3Event, SNSMessage } from "aws-lambda";
+import type { S3Event, SNSMessage } from "aws-lambda";
 import { updateTrayTooltip } from "node-tray";
 import WebSocket from "ws";
 import { getErrorMessage } from "../utils/getErrorMessage.js";

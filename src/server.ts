@@ -5,8 +5,8 @@ import http from "http";
 import { WebSocketServer } from "ws";
 import WebSocket from "ws";
 import bodyParser from "body-parser";
-import { SNSClient, ConfirmSubscriptionCommand } from "@aws-sdk/client-sns";
-import { SNSMessage } from "aws-lambda";
+import { ConfirmSubscriptionCommand, SNSClient } from "@aws-sdk/client-sns";
+import type { SNSMessage } from "aws-lambda";
 import { getEnvironmentVariables } from "./getEnvironmentVariables.js";
 
 interface ExtendedWebSocket extends WebSocket {
