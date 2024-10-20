@@ -5,9 +5,12 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "build": "rimraf dist && esbuild ./src/client/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.cjs",
-    "build:exe": "pnpm build && build.bat",
-    "postbuild:exe": "postbuild.bat",
+    "build": "rimraf dist && pnpm build:bundle && pnpm build:exe && timeout 5 && pnpm silenceexe && pnpm changeicon && pnpm build:zip",
+    "build:bundle": "rimraf dist && esbuild ./src/client/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.cjs",
+    "build:exe": "build-exe.bat",
+    "build:zip": "build-zip.bat",
+    "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
+    "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe",
     "start": "tsx .",
     "start:client": "tsx ./src/client",
     "lint": "eslint ."
@@ -21,10 +24,12 @@
     "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "7.14.1",
     "@typescript-eslint/parser": "7.14.1",
+    "create-nodew-exe": "^1.0.10",
     "esbuild": "^0.24.0",
     "eslint": "8.57.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-prettier": "5.1.3",
+    "exe-edit": "^0.1.1",
     "prettier": "3.3.2",
     "rimraf": "^6.0.1",
     "typescript": "^5.6.2"
