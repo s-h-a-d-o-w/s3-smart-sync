@@ -2,6 +2,18 @@ import winston, { format } from "winston";
 
 const { combine, timestamp, printf } = format;
 
+export function getLogLevel() {
+  return !process.argv[2]
+    ? "error"
+    : process.argv[2] === "info"
+    ? "info"
+    : process.argv[2] === "debug"
+    ? "debug"
+    : "error";
+}
+
+const logLevel = getLogLevel();
+
 const myFormat = combine(
   timestamp(),
   printf(({ level, message, timestamp }) => {
@@ -9,13 +21,17 @@ const myFormat = combine(
   }),
 );
 
+const transports = [
+  new winston.transports.File({ filename: "error.log", level: "error" }),
+];
+if (logLevel === "info" || logLevel === "debug") {
+  transports.push(new winston.transports.File({ filename: "combined.log" }));
+}
+
 export const logger = winston.createLogger({
-  // level: "debug",
+  level: logLevel,
   format: myFormat,
-  transports: [
-    new winston.transports.File({ filename: "error.log", level: "error" }),
-    new winston.transports.File({ filename: "combined.log" }),
-  ],
+  transports,
 });
 
 // If we're not in production then log to the `console` with the format:

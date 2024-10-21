@@ -1,9 +1,10 @@
 import {
   createTrayIcon,
   destroyTrayIcon,
+  TrayItem,
   updateTrayIconImage,
 } from "node-tray";
-import { logger } from "../utils/logger.js";
+import { getLogLevel, logger } from "../utils/logger.js";
 import debounce from "lodash/debounce.js";
 
 export enum TrayIconState {
@@ -38,20 +39,32 @@ export function changeTrayIconState(trayIconState: TrayIconState) {
   currentState = trayIconState;
 }
 
+const items: TrayItem[] = [{
+  id: Symbol(),
+  text: "Exit",
+  onClick: () => {
+    logger.info("Exiting...");
+    destroyTrayIcon();
+    process.exit(0);
+  },
+}];
+
+if (getLogLevel() !== "error") {
+  items.unshift({
+    id: Symbol(),
+    text: "Log level: " + getLogLevel(),
+    enabled: false,
+  }, {
+    id: Symbol(),
+    text: "",
+    enabled: false,
+  });
+}
+
 export function setUpTrayIcon() {
   createTrayIcon({
     icon: "./assets/icon_disconnected.ico",
     tooltip: "S3 Smart Sync (Disconnected)",
-    items: [
-      {
-        id: Symbol(),
-        text: "Exit",
-        onClick: () => {
-          logger.info("Exiting...");
-          destroyTrayIcon();
-          process.exit(0);
-        },
-      },
-    ],
+    items,
   });
 }

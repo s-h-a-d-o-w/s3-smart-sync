@@ -2,3 +2,7 @@
 2. Run the .exe
 
 (Optional: If you want the tray icon to look prettier, you have to manually enable the compatibility setting -> high DPI -> scaling behavior performed by: application.)
+
+In case of problems
+=======================
+Provide either "info" or "debug" as a command line option for more verbose log output. (Which will end up in "combined.log")

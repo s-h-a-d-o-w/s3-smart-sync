@@ -1,4 +1,5 @@
-del client.blob 
+del client.blob
+del *.zip
 
 wsl mv s3-smart-sync.exe dist
 copy CLIENT_INSTRUCTIONS.txt dist
