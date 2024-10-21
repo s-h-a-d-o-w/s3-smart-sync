@@ -3,9 +3,12 @@ import {
   destroyTrayIcon,
   TrayItem,
   updateTrayIconImage,
+  updateTrayItem,
 } from "node-tray";
 import { getLogLevel, logger } from "../utils/logger.js";
 import debounce from "lodash/debounce.js";
+import AutoLaunch from "auto-launch";
+import { isSea } from "node:sea";
 
 export enum TrayIconState {
   Idle,
@@ -14,6 +17,11 @@ export enum TrayIconState {
 }
 
 let currentState: TrayIconState = TrayIconState.Disconnected;
+
+const autoLaunch = new AutoLaunch({
+  name: "S3 Smart Sync",
+  path: process.execPath,
+});
 
 function changeToIdle() {
   updateTrayIconImage("./assets/icon.ico");
@@ -39,29 +47,47 @@ export function changeTrayIconState(trayIconState: TrayIconState) {
   currentState = trayIconState;
 }
 
-const items: TrayItem[] = [{
-  id: Symbol(),
-  text: "Exit",
-  onClick: () => {
-    logger.info("Exiting...");
-    destroyTrayIcon();
-    process.exit(0);
-  },
-}];
+export async function setUpTrayIcon() {
+  const items: TrayItem[] = [];
 
-if (getLogLevel() !== "error") {
-  items.unshift({
+  if (getLogLevel() !== "error") {
+    items.push({
+      id: Symbol(),
+      text: "Log level: " + getLogLevel(),
+      enabled: false,
+    }, {
+      id: Symbol(),
+      text: "",
+      enabled: false,
+    });
+  }
+
+  if (isSea()) {
+    items.push({
+      id: Symbol(),
+      text: "Run on startup",
+      checked: await autoLaunch.isEnabled(),
+      onClick: (item) => {
+        item.checked ? autoLaunch.disable() : autoLaunch.enable();
+
+        updateTrayItem({
+          ...item,
+          checked: !item.checked,
+        });
+      },
+    });
+  }
+
+  items.push({
     id: Symbol(),
-    text: "Log level: " + getLogLevel(),
-    enabled: false,
-  }, {
-    id: Symbol(),
-    text: "",
-    enabled: false,
+    text: "Exit",
+    onClick: () => {
+      logger.info("Exiting...");
+      destroyTrayIcon();
+      process.exit(0);
+    },
   });
-}
 
-export function setUpTrayIcon() {
   createTrayIcon({
     icon: "./assets/icon_disconnected.ico",
     tooltip: "S3 Smart Sync (Disconnected)",

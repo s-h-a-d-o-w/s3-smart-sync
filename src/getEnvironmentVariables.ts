@@ -4,7 +4,9 @@ export function getEnvironmentVariables<T extends string>(...names: T[]) {
     Object.entries(process.env).filter(([name]) => names.includes(name as T)),
   );
 
-  const missing = names.filter((name) => !Object.keys(result).includes(name));
+  const missing = names.filter((name) =>
+    !Object.keys(result).includes(name) || result[name] === ""
+  );
   if (missing.length > 0) {
     throw new Error("Missing variable(s): " + missing.join(", "));
   }

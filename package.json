@@ -5,7 +5,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "build": "rimraf dist && pnpm build:bundle && pnpm build:exe && timeout 5 && pnpm silenceexe && pnpm changeicon && pnpm build:zip",
+    "build:client": "rimraf dist && pnpm build:bundle && pnpm build:exe && timeout 5 && pnpm silenceexe && pnpm changeicon && pnpm build:zip",
     "build:bundle": "rimraf dist && esbuild ./src/client/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.cjs",
     "build:exe": "build-exe.bat",
     "build:zip": "build-zip.bat",
@@ -16,6 +16,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@types/auto-launch": "^5.0.5",
     "@types/aws-lambda": "^8.10.145",
     "@types/body-parser": "^1.19.5",
     "@types/express": "^5.0.0",
@@ -37,6 +38,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.665.0",
     "@aws-sdk/client-sns": "^3.665.0",
+    "auto-launch": "^5.0.6",
     "body-parser": "^1.20.3",
     "chokidar": "^4.0.1",
     "dotenv": "^16.4.5",
