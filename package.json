@@ -16,6 +16,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.665.0",
     "@types/auto-launch": "^5.0.5",
     "@types/aws-lambda": "^8.10.145",
     "@types/body-parser": "^1.19.5",
@@ -38,15 +39,14 @@
     "prettier": "3.3.2",
     "rimraf": "^6.0.1",
     "typescript": "^5.6.2",
-    "winston": "^3.15.0",
-    "ws": "^8.18.0"
+    "winston": "^3.15.0"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.665.0",
     "@aws-sdk/client-sns": "^3.665.0",
     "body-parser": "^1.20.3",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
-    "tsx": "^4.19.1"
+    "tsx": "^4.19.1",
+    "ws": "^8.18.0"
   }
 }
