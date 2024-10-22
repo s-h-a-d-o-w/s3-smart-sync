@@ -2,7 +2,7 @@ name: Deployment
 
 on:
   push:
-    branches: 
+    branches:
       - master
 
 jobs:
@@ -10,20 +10,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Install pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 9
-    - name: Use Node.js 20
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-    - name: Install, test, deploy
-      run: |
-        pnpm install --frozen-lockfile
-        sh deploy.sh
-      env:
-        CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
-        CAPROVER_MACHINE_01: ${{ secrets.CAPROVER_MACHINE_01 }}
-        CI: true
+      - uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install, test, deploy
+        run: |
+          pnpm install --frozen-lockfile
+          sh deploy.sh
+        env:
+          CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
+          CAPROVER_MACHINE_01: ${{ secrets.CAPROVER_MACHINE_01 }}
+          CI: true
+          NODE_ENV: production
