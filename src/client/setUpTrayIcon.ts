@@ -9,6 +9,9 @@ import { getLogLevel, logger } from "../utils/logger.js";
 import debounce from "lodash/debounce.js";
 import AutoLaunch from "auto-launch";
 import { isSea } from "node:sea";
+import { basename, dirname } from "node:path";
+import { fileExists } from "../utils/fileExists.js";
+import { writeFile } from "node:fs/promises";
 
 export enum TrayIconState {
   Idle,
@@ -18,9 +21,11 @@ export enum TrayIconState {
 
 let currentState: TrayIconState = TrayIconState.Disconnected;
 
+const autoLaunchBatchFile = dirname(process.execPath) +
+  "\\s3-smart-sync-autolaunch.bat";
 const autoLaunch = new AutoLaunch({
   name: "S3 Smart Sync",
-  path: process.execPath,
+  path: autoLaunchBatchFile,
 });
 
 function changeToIdle() {
@@ -67,7 +72,16 @@ export async function setUpTrayIcon() {
       id: Symbol(),
       text: "Run on startup",
       checked: await autoLaunch.isEnabled(),
-      onClick: (item) => {
+      onClick: async (item) => {
+        if (!(await fileExists(autoLaunchBatchFile))) {
+          await writeFile(
+            autoLaunchBatchFile,
+            `cmd /c "cd /d ${dirname(process.execPath)} && start ${
+              basename(process.execPath)
+            }"`,
+          );
+        }
+
         item.checked ? autoLaunch.disable() : autoLaunch.enable();
 
         updateTrayItem({
