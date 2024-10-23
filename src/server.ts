@@ -71,7 +71,7 @@ app.post("/sns", async (req, res) => {
         }
       });
     }
-  } catch (error) {
+  } catch (_) {
     console.error("Received a non-SNS request.");
     res.sendStatus(400);
     return;

@@ -93,7 +93,7 @@ export async function upToDate(key: string) {
   let lastModifiedLocal: Date | undefined;
   try {
     lastModifiedLocal = (await stat(fullPath)).mtime;
-  } catch (e) {
+  } catch (_) {
     // File doesn't exist locally
   }
 

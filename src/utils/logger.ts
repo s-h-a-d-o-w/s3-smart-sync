@@ -6,10 +6,10 @@ export function getLogLevel() {
   return !process.argv[2]
     ? "error"
     : process.argv[2] === "info"
-    ? "info"
-    : process.argv[2] === "debug"
-    ? "debug"
-    : "error";
+      ? "info"
+      : process.argv[2] === "debug"
+        ? "debug"
+        : "error";
 }
 
 const logLevel = getLogLevel();

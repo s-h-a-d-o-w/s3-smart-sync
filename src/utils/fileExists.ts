@@ -4,7 +4,7 @@ export async function fileExists(path: string) {
   try {
     await access(path);
     return true;
-  } catch (e) {
+  } catch (_) {
     return false;
   }
 }

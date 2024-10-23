@@ -21,8 +21,8 @@ export enum TrayIconState {
 
 let currentState: TrayIconState = TrayIconState.Disconnected;
 
-const autoLaunchBatchFile = dirname(process.execPath) +
-  "\\s3-smart-sync-autolaunch.bat";
+const autoLaunchBatchFile =
+  dirname(process.execPath) + "\\s3-smart-sync-autolaunch.bat";
 const autoLaunch = new AutoLaunch({
   name: "S3 Smart Sync",
   path: autoLaunchBatchFile,
@@ -56,15 +56,18 @@ export async function setUpTrayIcon() {
   const items: TrayItem[] = [];
 
   if (getLogLevel() !== "error") {
-    items.push({
-      id: Symbol(),
-      text: "Log level: " + getLogLevel(),
-      enabled: false,
-    }, {
-      id: Symbol(),
-      text: "",
-      enabled: false,
-    });
+    items.push(
+      {
+        id: Symbol(),
+        text: "Log level: " + getLogLevel(),
+        enabled: false,
+      },
+      {
+        id: Symbol(),
+        text: "",
+        enabled: false,
+      },
+    );
   }
 
   if (isSea()) {
@@ -72,17 +75,19 @@ export async function setUpTrayIcon() {
       id: Symbol(),
       text: "Run on startup",
       checked: await autoLaunch.isEnabled(),
+      // It's alright that the tray icon doesn't wait for our code.
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       onClick: async (item) => {
         if (!(await fileExists(autoLaunchBatchFile))) {
           await writeFile(
             autoLaunchBatchFile,
-            `cmd /c "cd /d ${dirname(process.execPath)} && start ${
-              basename(process.execPath)
-            }"`,
+            `cmd /c "cd /d ${dirname(process.execPath)} && start ${basename(
+              process.execPath,
+            )}"`,
           );
         }
 
-        item.checked ? autoLaunch.disable() : autoLaunch.enable();
+        await (item.checked ? autoLaunch.disable() : autoLaunch.enable());
 
         updateTrayItem({
           ...item,
@@ -102,7 +107,7 @@ export async function setUpTrayIcon() {
     },
   });
 
-  createTrayIcon({
+  await createTrayIcon({
     icon: "./assets/icon_disconnected.ico",
     tooltip: "S3 Smart Sync (Disconnected)",
     items,

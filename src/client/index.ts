@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import fs, { stat } from "fs/promises";
+import { mkdir, stat, unlink } from "fs/promises";
 import { join } from "path";
 import { logger } from "../utils/logger.js";
 import { LOCAL_DIR } from "./consts.js";
@@ -24,10 +24,10 @@ import { fileExists } from "../utils/fileExists.js";
 import { getErrorMessage } from "../utils/getErrorMessage.js";
 
 async function main() {
-  setUpTrayIcon();
+  await setUpTrayIcon();
 
   // Ensure the local sync directory exists
-  fs.mkdir(LOCAL_DIR, { recursive: true });
+  await mkdir(LOCAL_DIR, { recursive: true });
 
   async function downloadFile(key: string) {
     const fullPath = join(LOCAL_DIR, key);
@@ -59,7 +59,7 @@ async function main() {
     try {
       changeTrayIconState(TrayIconState.Busy);
 
-      await fs.unlink(fullPath);
+      await unlink(fullPath);
       trackFileOperation(key);
       logger.info(`Removed local file: ${key}`);
     } catch (error) {
@@ -79,7 +79,7 @@ async function main() {
     const key = convertAbsolutePathToKey(localPath);
     try {
       await getLastModified(key);
-    } catch (e) {
+    } catch (_) {
       logger.debug(`removeFile: Doesn't exist: ${key}`);
       return;
     }
@@ -106,7 +106,7 @@ async function main() {
         logger.debug(`syncFile: Already up to date: ${key}`);
         return;
       }
-    } catch (e) {
+    } catch (_) {
       // File doesn't exist on S3
     }
 
@@ -128,4 +128,4 @@ async function main() {
   setUpFileWatcher(syncFile, removeFile);
 }
 
-main();
+void main();

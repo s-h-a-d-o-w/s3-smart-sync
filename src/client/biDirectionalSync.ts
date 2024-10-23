@@ -113,7 +113,7 @@ export async function biDirectionalSync() {
                 ({ status }) => status === "rejected",
               ) as PromiseRejectedResult[]
             )
-              .map(({ reason }) => reason)
+              .map(({ reason }) => String(reason))
               .join("\n"),
         );
       }
