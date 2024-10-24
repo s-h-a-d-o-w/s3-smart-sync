@@ -12,11 +12,11 @@
     "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
     "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe",
     "start": "tsx .",
-    "start:client": "tsx ./src/client",
+    "start:client": "tsx ./src/client info",
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.677.0",
+    "@aws-sdk/client-s3": "^3.679.0",
     "@eslint/compat": "^1.2.1",
     "@eslint/js": "^9.13.0",
     "@types/auto-launch": "^5.0.5",

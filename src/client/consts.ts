@@ -5,10 +5,18 @@ export const RECONNECT_DELAY = parseInt(
   10,
 );
 
-export const { AWS_REGION, S3_BUCKET, WEBSOCKET_URL, LOCAL_DIR } =
-  getEnvironmentVariables(
-    "AWS_REGION",
-    "S3_BUCKET",
-    "WEBSOCKET_URL",
-    "LOCAL_DIR",
-  );
+export const {
+  ACCESS_KEY,
+  AWS_REGION,
+  S3_BUCKET,
+  SECRET_KEY,
+  WEBSOCKET_URL,
+  LOCAL_DIR,
+} = getEnvironmentVariables(
+  "ACCESS_KEY",
+  "AWS_REGION",
+  "S3_BUCKET",
+  "SECRET_KEY",
+  "WEBSOCKET_URL",
+  "LOCAL_DIR",
+);
