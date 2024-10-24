@@ -9,9 +9,10 @@ copy .env.schema dist
 rename dist\.env.schema .env
 
 xcopy node_modules\node-tray\build\Release\tray.node dist\build\Release\
-mkdir dist\node_modules
-xcopy /i node_modules\node-tray\node_modules\bindings dist\node_modules\bindings
-xcopy /i node_modules\node-tray\node_modules\file-uri-to-path dist\node_modules\file-uri-to-path
+mkdir dist\node_modules\bindings
+wsl cp -r node_modules/.pnpm/bindings*/node_modules/bindings/* dist/node_modules/bindings
+mkdir dist\node_modules\file-uri-to-path
+wsl cp -r node_modules/.pnpm/bindings*/node_modules/file-uri-to-path/* dist/node_modules/file-uri-to-path
 
 cd dist
 del index.cjs

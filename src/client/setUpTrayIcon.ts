@@ -12,6 +12,7 @@ import { isSea } from "node:sea";
 import { basename, dirname } from "node:path";
 import { fileExists } from "../utils/fileExists.js";
 import { writeFile } from "node:fs/promises";
+import { version } from "../../package.json";
 
 export enum TrayIconState {
   Idle,
@@ -69,6 +70,12 @@ export async function setUpTrayIcon() {
       },
     );
   }
+
+  items.push({
+    id: Symbol(),
+    text: `v${version}`,
+    enabled: false,
+  });
 
   if (isSea()) {
     items.push({
