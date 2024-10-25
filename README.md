@@ -1,3 +1,5 @@
+<p align="center"><img src="./assets/logo.png" /></p>
+
 # s3-smart-sync
 
 **Client is Windows-only!**
