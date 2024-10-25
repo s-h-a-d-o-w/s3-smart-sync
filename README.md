@@ -10,17 +10,17 @@ I'm using this myself daily, to sync notes and other files between between deskt
 
 If you want the tray icon to look prettier, you have to manually enable the compatibility setting -> high DPI -> scaling behavior performed by: application.
 
-# How to use
+## How to use
 
 - Deploy the server using Dockerfile or of course cloning and doing what's in Dockerfile directly on the server. (Messages sent by the server contain file paths, so I strongly recommend using WSS. If you deploy using CapRover, you can simply enable HTTPS/websockets and it'll take care of the letsencrypt certificate renewal.)
 - Clone this on your client machine(s) and run `install` and `start:client`. (Or use the prebuilt .exe from releases - which triggered a cloud security scan on my machine. I guess Windows isn't sufficiently aware of node sea yet.)
 
-# How to use (dev)
+## How to use (dev)
 
 - Requires WSL - or you tweak the build scripts.
 - If you want to build the exe yourself, you have to install [the signing feature of the Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) and possibly change the path in `build-exe.bat`.
 
-# Dev notes
+## Dev notes
 
 - I've been going back and forth between `node:sea` and `pkg`. Because of that, I am keeping the code for both - for the time being at least. The latest is that with `node:sea`, one gets brief command prompt popups here and there, while one doesn't with `pkg`.
 - This should probably structured like a monorepo - separate client, server and shared. But since this was just supposed to be a quick project, I won't do that for now. (This is why I've put dependencies needed by the client into `devDependencies` - they are not necessary for server deployment and will exist when building the client locally anyway.)
