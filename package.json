@@ -5,15 +5,19 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "build:client": "rimraf dist && pnpm build:bundle && pnpm build:exe && timeout 5 && pnpm silenceexe && pnpm changeicon && pnpm build:zip",
-    "build:bundle": "rimraf dist && esbuild ./src/client/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.cjs",
-    "build:exe": "build-exe.bat",
-    "build:zip": "build-zip.bat",
+    "build:client": "rimraf dist && bundle.bat && pnpm build:pkg && timeout 5 && pnpm silenceexe && pnpm changeicon && build-zip.bat",
+    "build:sea": "build-exe.bat",
+    "build:pkg": "pkg -t node20-win-x64 dist/index.cjs -o s3-smart-sync.exe",
     "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
     "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe",
     "start": "tsx .",
     "start:client": "tsx ./src/client info",
     "lint": "eslint ."
+  },
+  "pnpm": {
+    "overrides": {
+      "winreg": "1.2.5"
+    }
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.679.0",
@@ -27,6 +31,7 @@
     "@types/lodash": "^4.17.12",
     "@types/node": "^20.17.0",
     "@types/ws": "^8.5.12",
+    "@yao-pkg/pkg": "^6.0.0",
     "auto-launch": "^5.0.6",
     "chokidar": "^4.0.1",
     "create-nodew-exe": "^1.0.10",
@@ -37,11 +42,12 @@
     "exe-edit": "^0.1.1",
     "globals": "^15.11.0",
     "lodash": "^4.17.21",
-    "node-tray": "^1.0.2",
+    "node-tray": "^1.0.3",
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.11.0",
+    "winax": "^3.5.3",
     "winston": "^3.15.0"
   },
   "dependencies": {

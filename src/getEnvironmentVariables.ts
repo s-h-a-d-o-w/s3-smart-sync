@@ -8,7 +8,25 @@ export function getEnvironmentVariables<T extends string>(...names: T[]) {
     (name) => !Object.keys(result).includes(name) || result[name] === "",
   );
   if (missing.length > 0) {
-    throw new Error("Missing variable(s): " + missing.join(", "));
+    // @ts-expect-error
+    if (process.pkg) {
+      import("winax")
+        .then((winax) => {
+          const wsh = new winax.Object("WScript.Shell");
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          wsh["Popup"](
+            "Missing environment variable(s): " + missing.join(", "),
+            undefined,
+            "Critical error",
+            48,
+          );
+        })
+        .catch((error) => {
+          throw new Error(String(error));
+        });
+    }
+
+    throw new Error("Missing environment variable(s): " + missing.join(", "));
   }
 
   return result as Record<T, string>;

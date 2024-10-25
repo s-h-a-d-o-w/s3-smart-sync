@@ -1,4 +1,5 @@
 import "dotenv/config";
+import "./setupGlobalErrorHandling.js";
 
 import { mkdir, stat, unlink } from "fs/promises";
 import { join } from "path";

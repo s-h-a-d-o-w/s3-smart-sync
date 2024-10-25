@@ -8,7 +8,6 @@ import {
 import { getLogLevel, logger } from "../utils/logger.js";
 import debounce from "lodash/debounce.js";
 import AutoLaunch from "auto-launch";
-import { isSea } from "node:sea";
 import { basename, dirname } from "node:path";
 import { fileExists } from "../utils/fileExists.js";
 import { writeFile } from "node:fs/promises";
@@ -71,14 +70,13 @@ export async function setUpTrayIcon() {
     );
   }
 
-  items.push({
-    id: Symbol(),
-    text: `v${version}`,
-    enabled: false,
-  });
-
-  if (isSea()) {
-    items.push({
+  items.push(
+    {
+      id: Symbol(),
+      text: `v${version}`,
+      enabled: false,
+    },
+    {
       id: Symbol(),
       text: "Run on startup",
       checked: await autoLaunch.isEnabled(),
@@ -89,7 +87,7 @@ export async function setUpTrayIcon() {
           await writeFile(
             autoLaunchBatchFile,
             `cmd /c "cd /d ${dirname(process.execPath)} && start ${basename(
-              process.execPath,
+              process.argv.join(" "),
             )}"`,
           );
         }
@@ -101,18 +99,17 @@ export async function setUpTrayIcon() {
           checked: !item.checked,
         });
       },
-    });
-  }
-
-  items.push({
-    id: Symbol(),
-    text: "Exit",
-    onClick: () => {
-      logger.info("Exiting...");
-      destroyTrayIcon();
-      process.exit(0);
     },
-  });
+    {
+      id: Symbol(),
+      text: "Exit",
+      onClick: () => {
+        logger.info("Exiting...");
+        destroyTrayIcon();
+        process.exit(0);
+      },
+    },
+  );
 
   await createTrayIcon({
     icon: "./assets/icon_disconnected.ico",
