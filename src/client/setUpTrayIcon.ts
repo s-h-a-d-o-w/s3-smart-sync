@@ -86,9 +86,7 @@ export async function setUpTrayIcon() {
         if (!(await fileExists(autoLaunchBatchFile))) {
           await writeFile(
             autoLaunchBatchFile,
-            `cmd /c "cd /d ${dirname(process.execPath)} && start ${basename(
-              process.argv.join(" "),
-            )}"`,
+            `cmd /c "cd /d ${dirname(process.execPath)} && start ${basename(process.execPath)}"`,
           );
         }
 

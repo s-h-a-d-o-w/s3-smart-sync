@@ -1,3 +1,5 @@
+import { IS_PKG } from "./client/consts.js";
+
 // Use for required variables only!
 export function getEnvironmentVariables<T extends string>(...names: T[]) {
   const result = Object.fromEntries(
@@ -8,8 +10,7 @@ export function getEnvironmentVariables<T extends string>(...names: T[]) {
     (name) => !Object.keys(result).includes(name) || result[name] === "",
   );
   if (missing.length > 0) {
-    // @ts-expect-error
-    if (process.pkg) {
+    if (IS_PKG) {
       import("winax")
         .then((winax) => {
           const wsh = new winax.Object("WScript.Shell");

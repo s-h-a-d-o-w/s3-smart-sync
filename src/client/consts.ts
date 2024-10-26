@@ -1,5 +1,8 @@
 import { getEnvironmentVariables } from "../getEnvironmentVariables.js";
 
+// @ts-expect-error
+export const IS_PKG = Boolean(process.pkg);
+
 export const RECONNECT_DELAY = parseInt(
   process.env["RECONNECT_DELAY"] || "500",
   10,

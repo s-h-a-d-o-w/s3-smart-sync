@@ -17,7 +17,7 @@ wsl cp -r node_modules/.pnpm/bindings*/node_modules/file-uri-to-path/* dist/node
 cd dist
 del index.cjs
 powershell -Command "$version=(Get-Content ..\package.json | ConvertFrom-Json).version; wsl zip -r s3-smart-sync-$version.zip ."
-wsl mv s3-smart-sync-1.0.0.zip ..
+wsl mv s3-smart-sync-*.zip ..
 
 cd..
 wsl rm -rf dist
