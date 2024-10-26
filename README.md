@@ -4,7 +4,7 @@
 
 **Client is Windows-only!**
 
-I'm using this myself daily, to sync notes and other files between between desktop and tablet (Using Cryptomator, since one can't trust Amazon.)
+I'm using this myself daily, to sync notes and other files between between desktop and tablet (Using Cryptomator, since one can't trust Amazon. If you do use Cryptomater, you "MUST" [switch from WebDAV to WinFsp in the settings](https://github.com/cryptomator/cryptomator/issues/3576#issuecomment-2409007431)!)
 
 **As a general rule - don't change/delete files unless the client is idle (green icon or no log output)!** (It's fine to e.g. drag and drop a ton of files but you will probably run into a problem particularly if you edit the same file repeatedly within a few seconds.)
 
