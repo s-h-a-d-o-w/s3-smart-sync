@@ -8,8 +8,11 @@ export function getEnvironmentVariables<T extends string>(...names: T[]) {
     (name) => !Object.keys(result).includes(name) || result[name] === "",
   );
   if (missing.length > 0) {
-    // @ts-expect-error
-    if (process.pkg) {
+    if (
+      process.platform === "win32" &&
+      process.pkg &&
+      !process.argv.includes("cli")
+    ) {
       import("winax")
         .then((winax) => {
           const wsh = new winax.Object("WScript.Shell");
@@ -20,6 +23,8 @@ export function getEnvironmentVariables<T extends string>(...names: T[]) {
             "Critical error",
             48,
           );
+
+          process.exit(1);
         })
         .catch((error) => {
           throw new Error(String(error));

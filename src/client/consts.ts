@@ -2,7 +2,6 @@ import untildify from "untildify";
 import { getEnvironmentVariables } from "../getEnvironmentVariables.js";
 
 export const IS_CLI = process.argv.includes("cli");
-// @ts-expect-error
 export const IS_PKG = Boolean(process.pkg);
 export const IS_WINDOWS = process.platform === "win32";
 

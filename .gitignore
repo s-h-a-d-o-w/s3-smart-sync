@@ -8,4 +8,5 @@ dist
 *.blob
 *.exe
 *.zip
+*.tar.gz
 *.log
