@@ -6,7 +6,7 @@ import { logger } from "../utils/logger.js";
 import { LOCAL_DIR, S3_BUCKET } from "./consts.js";
 import { convertAbsolutePathToKey, download, upload } from "./s3Operations.js";
 import { s3Client } from "./state.js";
-import { destroyTrayIcon } from "node-tray";
+import { destroyTrayIcon } from "./trayWrapper.js";
 
 type FileInfo = {
   key: string;

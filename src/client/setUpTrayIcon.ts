@@ -1,10 +1,3 @@
-import {
-  createTrayIcon,
-  destroyTrayIcon,
-  TrayItem,
-  updateTrayIconImage,
-  updateTrayItem,
-} from "node-tray";
 import { getLogLevel, logger } from "../utils/logger.js";
 import debounce from "lodash/debounce.js";
 import AutoLaunch from "auto-launch";
@@ -13,6 +6,13 @@ import { fileExists } from "../utils/fileExists.js";
 import { writeFile } from "node:fs/promises";
 import { version } from "../../package.json";
 import { IS_WINDOWS } from "./consts.js";
+import {
+  createTrayIcon,
+  destroyTrayIcon,
+  TrayItem,
+  updateTrayIconImage,
+  updateTrayItem,
+} from "./trayWrapper.js";
 
 export enum TrayIconState {
   Idle,

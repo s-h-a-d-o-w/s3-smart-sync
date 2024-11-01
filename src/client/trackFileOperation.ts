@@ -1,5 +1,5 @@
-import { destroyTrayIcon } from "node-tray";
 import { logger } from "../utils/logger.js";
+import { destroyTrayIcon } from "./trayWrapper.js";
 
 const LONG_OBSERVATION_DURATION = 10000;
 
