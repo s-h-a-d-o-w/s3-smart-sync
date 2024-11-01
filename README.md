@@ -2,8 +2,6 @@
 
 # s3-smart-sync
 
-**Client is Windows-only!**
-
 I'm using this myself daily, to sync notes and other files between between desktop and tablet (Using Cryptomator, since one can't trust Amazon. If you do use Cryptomater, you "MUST" [switch from WebDAV to WinFsp in the settings](https://github.com/cryptomator/cryptomator/issues/3576#issuecomment-2409007431)!)
 
 **As a general rule - don't change/delete files unless the client is idle (green icon or no log output)!** (It's fine to e.g. drag and drop a ton of files but you will probably run into a problem particularly if you edit the same file repeatedly within a few seconds.)
@@ -12,16 +10,40 @@ I'm using this myself daily, to sync notes and other files between between deskt
 
 If you want the tray icon to look prettier, you have to manually enable the compatibility setting -> high DPI -> scaling behavior performed by: application.
 
-## How to use
+## Compatibility
+
+**If you can test and confirm any of the `?`, please let me know!** (Even if it doesn't work. *Especially* if it doesn't work... 😄)
+
+|         | "UI" (Tray icon) | CLI |
+|---------|------------------|-----|
+| Windows | ✅                | ✅   |
+| Linux   | ?                | ✅   |
+| Mac     | ?                | ?   |
+
+## How to use (server)
 
 - Deploy the server using the Dockerfile or of course cloning and doing what's in Dockerfile directly on the server. (Messages sent by the server contain file paths, so I strongly recommend using WSS. If you deploy using CapRover, you can simply enable HTTPS/websockets and it'll take care of the letsencrypt certificate renewal.)
 - Set up an HTTP(S) SNS subscription for that server at the path `/sns`. (And then of course have your S3 bucket send notifications to that SNS topic.)
-- Run the latest release on your client machine(s). (Or clone this repo and run `pnpm install` and `pnpm start:client`)
 
-## How to use (dev)
+## How to use (client with UI)
 
-- Requires WSL - or you tweak the build scripts.
-- If you want to build the exe yourself, you have to install [the signing feature of the Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) and possibly change the path in `build-exe.bat`.
+- Run the latest release on your client machine(s).
+
+## How to use (client with CLI)
+
+### From source
+
+1. Clone
+2. `pnpm install`
+3. `pnpm start:client`
+
+### Prebuilt (Linux only)
+
+- Run the latest release with the commandline argument `cli`.
+
+## How to build with `node-sea`
+
+You have to install [the signing feature of the Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) and possibly change the path in `build-sea.bat`.
 
 ## Dev notes
 
