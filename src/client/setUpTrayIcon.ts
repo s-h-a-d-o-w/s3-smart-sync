@@ -12,6 +12,7 @@ import { basename, dirname } from "node:path";
 import { fileExists } from "../utils/fileExists.js";
 import { writeFile } from "node:fs/promises";
 import { version } from "../../package.json";
+import { IS_WINDOWS } from "./consts.js";
 
 export enum TrayIconState {
   Idle,
@@ -21,11 +22,12 @@ export enum TrayIconState {
 
 let currentState: TrayIconState = TrayIconState.Disconnected;
 
-const autoLaunchBatchFile =
-  dirname(process.execPath) + "\\s3-smart-sync-autolaunch.bat";
+const autoLaunchTarget = IS_WINDOWS
+  ? dirname(process.execPath) + "\\s3-smart-sync-autolaunch.bat"
+  : process.execPath;
 const autoLaunch = new AutoLaunch({
   name: "S3 Smart Sync",
-  path: autoLaunchBatchFile,
+  path: autoLaunchTarget,
 });
 
 function changeToIdle() {
@@ -83,9 +85,9 @@ export async function setUpTrayIcon() {
       // It's alright that the tray icon doesn't wait for our code.
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
       onClick: async (item) => {
-        if (!(await fileExists(autoLaunchBatchFile))) {
+        if (IS_WINDOWS && !(await fileExists(autoLaunchTarget))) {
           await writeFile(
-            autoLaunchBatchFile,
+            autoLaunchTarget,
             `cmd /c "cd /d ${dirname(process.execPath)} && start ${basename(process.execPath)}"`,
           );
         }

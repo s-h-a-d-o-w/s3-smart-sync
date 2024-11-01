@@ -11,7 +11,7 @@
     "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
     "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe",
     "start": "tsx .",
-    "start:client": "tsx ./src/client info",
+    "start:client": "tsx ./src/client cli",
     "lint": "eslint ."
   },
   "pnpm": {
@@ -42,7 +42,7 @@
     "exe-edit": "^0.1.1",
     "globals": "^15.11.0",
     "lodash": "^4.17.21",
-    "node-tray": "^1.0.3",
+    "node-tray": "^1.0.6",
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
     "typescript": "^5.6.3",
@@ -56,6 +56,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "tsx": "^4.19.1",
+    "untildify": "^5.0.0",
     "ws": "^8.18.0"
   }
 }

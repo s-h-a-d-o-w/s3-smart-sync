@@ -26,6 +26,9 @@ importers:
       tsx:
         specifier: ^4.19.1
         version: 4.19.1
+      untildify:
+        specifier: ^5.0.0
+        version: 5.0.0
       ws:
         specifier: ^8.18.0
         version: 8.18.0
@@ -97,8 +100,8 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       node-tray:
-        specifier: ^1.0.3
-        version: 1.0.3
+        specifier: ^1.0.6
+        version: 1.0.6
       prettier:
         specifier: ^3.3.3
         version: 3.3.3
@@ -2115,8 +2118,8 @@ packages:
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
 
-  node-tray@1.0.3:
-    resolution: {integrity: sha512-KacU9XumYRmBFYD3vp8cEE9TTnf/qr6//pBts56dyl7K9r7oUY4xXB17Q8ReKBO7d6WnSKCk0SukD1+li2/7LA==}
+  node-tray@1.0.6:
+    resolution: {integrity: sha512-l2P8ZcdbYRzHEK5NOUjq+lCUgpEHdH03RabenJrFUPVko1yGjZ/XgvixWkzu0Pp7/1I0JbXHLGfcSCCVhiGw4A==}
 
   nopt@7.2.1:
     resolution: {integrity: sha512-taM24ViiimT/XntxbPyJQzCG+p4EKOpgD3mxFwW38mGjVUrfERQOeY4EDHjdnptttfHuHQXFx+lTP08Q+mLa/w==}
@@ -2628,6 +2631,10 @@ packages:
   untildify@3.0.3:
     resolution: {integrity: sha512-iSk/J8efr8uPT/Z4eSUywnqyrQU7DSdMfdqK4iWEaUVVmcP5JcnpRqmVMwcwcnmI1ATFNgC5V90u09tBynNFKA==}
     engines: {node: '>=4'}
+
+  untildify@5.0.0:
+    resolution: {integrity: sha512-bOgQLUnd2G5rhzaTvh1VCI9Fo6bC5cLTpH17T5aFfamyXFYDbbdzN6IXdeoc3jBS7T9hNTmJtYUzJCJ2Xlc9gA==}
+    engines: {node: '>=16'}
 
   unzipper@0.12.3:
     resolution: {integrity: sha512-PZ8hTS+AqcGxsaQntl3IRBw65QrBI6lxzqDEL7IAo/XCEqRTKGfOX56Vea5TH9SZczRVxuzk1re04z/YjuYCJA==}
@@ -5463,7 +5470,7 @@ snapshots:
 
   node-int64@0.4.0: {}
 
-  node-tray@1.0.3:
+  node-tray@1.0.6:
     dependencies:
       bindings: 1.5.0
       node-addon-api: 8.2.1
@@ -5982,6 +5989,8 @@ snapshots:
   unpipe@1.0.0: {}
 
   untildify@3.0.3: {}
+
+  untildify@5.0.0: {}
 
   unzipper@0.12.3:
     dependencies:

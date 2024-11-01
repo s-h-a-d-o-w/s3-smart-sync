@@ -5,7 +5,7 @@ const { combine, timestamp, printf } = format;
 export function getLogLevel() {
   return !process.argv[2]
     ? "error"
-    : process.argv[2] === "info"
+    : process.argv[2] === "info" || process.argv.includes("cli")
       ? "info"
       : process.argv[2] === "debug"
         ? "debug"

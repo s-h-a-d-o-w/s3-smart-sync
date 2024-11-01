@@ -40,3 +40,7 @@ If you want the tray icon to look prettier, you have to manually enable the comp
 
  ELIFECYCLE  Command failed with exit code 13.
 ```
+
+## TODO
+
+- Use some CLI library instead of parsing command line arguments manually and not offering help.
