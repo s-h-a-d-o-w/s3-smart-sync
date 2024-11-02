@@ -16,7 +16,7 @@ cp -r node_modules/.pnpm/bindings*/node_modules/file-uri-to-path/* dist/node_mod
 
 cd dist
 rm index.cjs
-tar -czvf s3-smart-sync-$(jq -r '.version' ../package.json).tar.gz .
+tar -czvf s3-smart-sync-$(jq -r '.version' ../package.json)-linux-x64.tar.gz .
 mv s3-smart-sync-*.tar.gz ../
 
 cd ..
