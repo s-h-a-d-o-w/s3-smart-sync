@@ -29,6 +29,7 @@ export function setUpFileWatcher(
     ignoreInitial: true,
   });
 
+  // Each path gets their own debounced function
   const debounceMap: Record<string, () => void> = {};
   function getDebouncedFunction(
     which: "sync" | "remove",
