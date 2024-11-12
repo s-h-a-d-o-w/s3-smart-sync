@@ -76,8 +76,8 @@ importers:
         specifier: ^4.0.1
         version: 4.0.1
       create-nodew-exe:
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.1.0
+        version: 2.1.0
       esbuild:
         specifier: ^0.24.0
         version: 0.24.0
@@ -1343,8 +1343,8 @@ packages:
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
 
-  create-nodew-exe@2.0.0:
-    resolution: {integrity: sha512-84/hAMRtK0sEE3G5unzPOx2wsKQ1kx70x+e8EzUSAmMC5HtwAlIdT58Hdxa07SCRPCYhg5SDlL5phViB6lQFog==}
+  create-nodew-exe@2.1.0:
+    resolution: {integrity: sha512-tCLV5s1IDF7RaRdhMHzn6AXncUpBfTw3x1ljxTIBRKPKnpkXT3Xs/nLo8Erppeaqua6TZgHAyQA44/s6lgSKkw==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -4506,7 +4506,7 @@ snapshots:
 
   core-util-is@1.0.3: {}
 
-  create-nodew-exe@2.0.0:
+  create-nodew-exe@2.1.0:
     dependencies:
       yargs: 17.7.2
 

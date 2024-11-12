@@ -37,7 +37,7 @@
     "@yao-pkg/pkg": "^6.0.0",
     "auto-launch": "^5.0.6",
     "chokidar": "^4.0.1",
-    "create-nodew-exe": "^2.0.0",
+    "create-nodew-exe": "^2.1.0",
     "esbuild": "^0.24.0",
     "eslint": "^9.13.0",
     "eslint-config-prettier": "^9.1.0",
