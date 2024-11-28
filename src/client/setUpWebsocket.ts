@@ -4,8 +4,8 @@ import { getErrorMessage } from "../utils/getErrorMessage.js";
 import { logger } from "../utils/logger.js";
 import { biDirectionalSync } from "./biDirectionalSync.js";
 import { RECONNECT_DELAY, WEBSOCKET_URL } from "./consts.js";
-import { resumeFileWatcher, suspendFileWatcher } from "./setUpFileWatcher.js";
-import { changeTrayIconState, TrayIconState } from "./setUpTrayIcon.js";
+import { resumeFileWatcher, suspendFileWatcher } from "./fileWatcher.js";
+import { changeTrayIconState, TrayIconState } from "./trayIcon.js";
 import { updateTrayTooltip } from "./trayWrapper.js";
 
 type RemoteToLocalOperation = (key: string) => void;

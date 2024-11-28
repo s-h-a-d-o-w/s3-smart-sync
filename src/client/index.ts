@@ -1,5 +1,5 @@
 import "dotenv/config";
-import "./setupGlobalErrorHandling.js";
+import "./globalErrorHandling.js";
 
 import { mkdir, stat, unlink } from "fs/promises";
 import { join } from "path";
@@ -13,14 +13,19 @@ import {
   upload,
   upToDate,
 } from "./s3Operations.js";
-import { setUpFileWatcher } from "./setUpFileWatcher.js";
+import {
+  FileOperationType,
+  ignoreNext,
+  setUpFileWatcher,
+  unignoreNext,
+} from "./fileWatcher.js";
 import { setUpWebsocket } from "./setUpWebsocket.js";
 import { trackFileOperation } from "./trackFileOperation.js";
 import {
   changeTrayIconState,
   setUpTrayIcon,
   TrayIconState,
-} from "./setUpTrayIcon.js";
+} from "./trayIcon.js";
 import { fileExists } from "../utils/fileExists.js";
 import { getErrorMessage } from "../utils/getErrorMessage.js";
 
@@ -31,19 +36,20 @@ async function main() {
   await mkdir(LOCAL_DIR, { recursive: true });
 
   async function downloadFile(key: string) {
-    const fullPath = join(LOCAL_DIR, key);
+    const localPath = join(LOCAL_DIR, key);
     if (await upToDate(key)) {
-      logger.debug(`downloadFile: Already up to date: ${fullPath}`);
+      logger.debug(`downloadFile: Already up to date: ${localPath}`);
       return;
     }
 
     try {
       changeTrayIconState(TrayIconState.Busy);
 
-      await download(key, fullPath);
-      const { size } = await stat(fullPath);
+      await download(key, localPath);
+      const { size } = await stat(localPath);
       trackFileOperation(key, size);
     } catch (error) {
+      unignoreNext(FileOperationType.Sync, localPath);
       logger.error(`Error downloading file ${key}: ${getErrorMessage(error)}`);
     } finally {
       changeTrayIconState(TrayIconState.Idle);
@@ -51,19 +57,21 @@ async function main() {
   }
 
   async function removeLocalFile(key: string) {
-    const fullPath = join(LOCAL_DIR, key);
-    if (!(await fileExists(fullPath))) {
-      logger.debug(`removeLocalFile: Doesn't exist: ${fullPath}`);
+    const localPath = join(LOCAL_DIR, key);
+    if (!(await fileExists(localPath))) {
+      logger.debug(`removeLocalFile: Doesn't exist: ${localPath}`);
       return;
     }
 
     try {
       changeTrayIconState(TrayIconState.Busy);
 
-      await unlink(fullPath);
+      ignoreNext(FileOperationType.Remove, localPath);
+      await unlink(localPath);
       trackFileOperation(key);
       logger.info(`Removed local file: ${key}`);
     } catch (error) {
+      unignoreNext(FileOperationType.Remove, localPath);
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         logger.error(
           `Error removing local file ${key}: ${getErrorMessage(error)}`,

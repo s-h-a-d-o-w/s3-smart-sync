@@ -12,6 +12,7 @@
     "build:pkg:linux": "pkg -t node20-linux-x64 dist/index.cjs -o s3-smart-sync",
     "bundle": "esbuild ./src/client/index.ts --bundle --platform=node --target=node20 --external:*.node --outfile=dist/index.cjs",
     "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
+    "dev:client": "tsx ./src/client debug",
     "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe",
     "start": "tsx .",
     "start:client": "tsx ./src/client cli",

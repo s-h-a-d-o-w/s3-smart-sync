@@ -8,18 +8,14 @@ import { mkdir, readFile, stat, utimes, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { logger } from "../utils/logger.js";
 import { LOCAL_DIR, S3_BUCKET } from "./consts.js";
-import { ignoreFiles, s3Client } from "./state.js";
+import { s3Client } from "./state.js";
+import { FileOperationType, ignoreNext } from "./fileWatcher.js";
 
 async function syncLastModified(localPath: string, lastModified?: Date) {
   if (lastModified) {
-    ignoreFiles.add(localPath);
     logger.debug(`syncLastModified: added ${localPath} to ignore files.`);
+    ignoreNext(FileOperationType.Sync, localPath);
     await utimes(localPath, lastModified, lastModified);
-    // Give chokidar an opportunity to get triggered.
-    setTimeout(() => {
-      ignoreFiles.delete(localPath);
-      logger.debug(`syncLastModified: removed ${localPath} from ignore files.`);
-    }, 100);
   }
 }
 
@@ -60,6 +56,7 @@ export async function download(key: string, localPath: string) {
 
   if (Body) {
     await mkdir(dirname(localPath), { recursive: true });
+    ignoreNext(FileOperationType.Sync, localPath);
     await writeFile(localPath, await Body.transformToByteArray());
     await syncLastModified(localPath, LastModified);
 

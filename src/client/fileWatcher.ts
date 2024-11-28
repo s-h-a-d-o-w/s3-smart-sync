@@ -2,11 +2,43 @@ import chokidar, { FSWatcher } from "chokidar";
 import debounce from "lodash/debounce.js";
 import { logger } from "../utils/logger.js";
 import { LOCAL_DIR } from "./consts.js";
-import { ignoreFiles } from "./state.js";
 
 type LocalToRemoteOperation = (localPath: string) => void;
+export enum FileOperationType {
+  Remove,
+  Sync,
+}
 
 let watcher: FSWatcher | undefined;
+const IGNORE_CLEANUP_DURATION = 1000;
+const ignoreMaps = {
+  [FileOperationType.Remove]: new Map<string, number>(),
+  [FileOperationType.Sync]: new Map<string, number>(),
+};
+
+export function ignoreNext(fileOperationType: FileOperationType, path: string) {
+  ignoreMaps[fileOperationType].set(path, Date.now());
+}
+
+export function unignoreNext(
+  fileOperationType: FileOperationType,
+  path: string,
+) {
+  ignoreMaps[fileOperationType].set(path, Date.now());
+}
+
+function shouldIgnore(fileOperationType: FileOperationType, path: string) {
+  const timestamp = ignoreMaps[fileOperationType].get(path);
+  if (!timestamp) return false;
+
+  // If the ignore entry is older than 500 ms, it is probably fair to assume that although we handle errors and call unignore(), something unexpected must have happened and this is a stale entry.
+  if (Date.now() - timestamp > IGNORE_CLEANUP_DURATION) {
+    ignoreMaps[fileOperationType].delete(path);
+    return false;
+  }
+
+  return true;
+}
 
 export function suspendFileWatcher() {
   if (watcher) {
@@ -32,13 +64,13 @@ export function setUpFileWatcher(
   // Each path gets their own debounced function
   const debounceMap: Record<string, () => void> = {};
   function getDebouncedFunction(
-    which: "sync" | "remove",
+    fileOperationType: FileOperationType,
     localPath: string,
   ): () => void {
-    const key = which + localPath;
+    const key = fileOperationType + localPath;
     if (!debounceMap[key]) {
       debounceMap[key] = debounce(() => {
-        if (which === "sync") {
+        if (fileOperationType === FileOperationType.Sync) {
           syncFile(localPath);
         } else {
           removeFile(localPath);
@@ -51,24 +83,26 @@ export function setUpFileWatcher(
   }
 
   const wrappedDebouncedSyncFile = (localPath: string) => {
-    // Ignore triggers caused by timestamp syncing.
-    if (ignoreFiles.has(localPath)) {
-      logger.debug(`debouncedSyncFile: ignored ${localPath}.`);
+    // Ignore triggers caused by keeping up with S3 state change.
+    if (shouldIgnore(FileOperationType.Sync, localPath)) {
+      unignoreNext(FileOperationType.Sync, localPath);
+      logger.debug(`debouncedSyncFile: ignored once ${localPath}.`);
       return;
     }
 
     logger.debug(`debouncedSyncFile: triggering syncing ${localPath}.`);
-    getDebouncedFunction("sync", localPath)();
+    getDebouncedFunction(FileOperationType.Sync, localPath)();
   };
   const wrappedDebouncedRemoveFile = (localPath: string) => {
-    // Ignore triggers caused by timestamp syncing.
-    if (ignoreFiles.has(localPath)) {
-      logger.debug(`debouncedRemoveFile: ignored ${localPath}.`);
+    // Ignore triggers caused by keeping up with S3 state change.
+    if (shouldIgnore(FileOperationType.Remove, localPath)) {
+      unignoreNext(FileOperationType.Remove, localPath);
+      logger.debug(`debouncedSyncFile: ignored once ${localPath}.`);
       return;
     }
 
     logger.debug(`debouncedRemoveFile: triggering removing ${localPath}.`);
-    getDebouncedFunction("remove", localPath)();
+    getDebouncedFunction(FileOperationType.Remove, localPath)();
   };
 
   watcher

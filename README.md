@@ -23,7 +23,7 @@ If you want the tray icon to look prettier, you have to manually enable the comp
 ## How to use (server)
 
 - Deploy the server using the Dockerfile or of course cloning and doing what's in Dockerfile directly on the server. (Messages sent by the server contain file paths, so I strongly recommend using WSS. If you deploy using CapRover, you can simply enable HTTPS/websockets and it'll take care of the letsencrypt certificate renewal.)
-- On AWS, create an SNS topic and add an HTTP(S) subscription using the URL `<your server>/sns`. Then configure your S3 bucket to send notifications to that SNS topic.
+- On AWS, create an SNS topic (this isn't just for performance and cost effectiveness but also for compatibility with anything else that might cause changes in the S3 bucket) and add an HTTP(S) subscription using the URL `<your server>/sns`. Then configure your S3 bucket to send notifications to that SNS topic.
 
 ## How to use (client with UI)
 
