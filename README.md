@@ -65,4 +65,5 @@ You have to install [the signing feature of the Windows SDK](https://developer.m
 
 ## TODO
 
+- Make use of a docker registry so that people can easily run the latest server version.
 - Use some CLI library instead of parsing command line arguments manually and not offering help.
