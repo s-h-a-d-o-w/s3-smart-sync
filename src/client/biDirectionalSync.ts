@@ -1,51 +1,21 @@
-import { _Object, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { statSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { logger } from "../utils/logger.js";
-import { LOCAL_DIR, S3_BUCKET } from "./consts.js";
-import { convertAbsolutePathToKey, download, upload } from "./s3Operations.js";
-import { s3Client } from "./state.js";
+import { LOCAL_DIR } from "./consts.js";
+import {
+  convertAbsolutePathToKey,
+  download,
+  listS3Files,
+  upload,
+} from "./s3Operations.js";
 import { destroyTrayIcon } from "./trayWrapper.js";
 
-type FileInfo = {
-  key: string;
-  lastModified: Date;
-};
-
-async function listS3Files() {
-  let continuationToken: string | undefined = undefined;
-  const files: Array<FileInfo> = [];
-  const noLastModifiedInfo: string[] = [];
-
-  do {
-    const { Contents, NextContinuationToken } = (await s3Client.send(
-      new ListObjectsV2Command({
-        Bucket: S3_BUCKET,
-        ...(continuationToken ? { ContinuationToken: continuationToken } : {}),
-      }),
-    )) as {
-      Contents?: _Object[];
-      NextContinuationToken: string | undefined;
-    };
-    Contents?.forEach(({ Key, LastModified }) => {
-      if (Key?.endsWith("/")) {
-        // Ignore directories
-        return;
-      } else if (Key && LastModified) {
-        files.push({ key: Key, lastModified: LastModified });
-      } else if (Key && !LastModified) {
-        noLastModifiedInfo.push(Key);
-      }
-    });
-    continuationToken = NextContinuationToken;
-  } while (continuationToken);
-
-  return [files, noLastModifiedInfo] as const;
-}
-
 async function listLocalFiles(dir: string) {
-  const files: Array<FileInfo> = [];
+  const files: Array<{
+    key: string;
+    lastModified: Date;
+  }> = [];
 
   const whatever = await readdir(dir, { recursive: true, withFileTypes: true });
   whatever.forEach((dummy) => {
