@@ -1,15 +1,31 @@
 import {
+  _Object,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
+  S3Client,
 } from "@aws-sdk/client-s3";
 import { mkdir, readFile, stat, utimes, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { logger } from "../utils/logger.js";
-import { LOCAL_DIR, S3_BUCKET } from "./consts.js";
-import { s3Client } from "./state.js";
+import {
+  ACCESS_KEY,
+  AWS_REGION,
+  LOCAL_DIR,
+  S3_BUCKET,
+  SECRET_KEY,
+} from "./consts.js";
 import { FileOperationType, ignoreNext } from "./fileWatcher.js";
+
+export const s3Client = new S3Client({
+  region: AWS_REGION,
+  credentials: {
+    accessKeyId: ACCESS_KEY,
+    secretAccessKey: SECRET_KEY,
+  },
+});
 
 async function syncLastModified(localPath: string, lastModified?: Date) {
   if (lastModified) {
@@ -65,6 +81,40 @@ export async function download(key: string, localPath: string) {
     // TODO: Might make sense to retry a couple of times at increasing intervals.
     logger.error(`Couldn't get file data for: ${key}`);
   }
+}
+
+export async function listS3Files() {
+  let continuationToken: string | undefined = undefined;
+  const files: Array<{
+    key: string;
+    lastModified: Date;
+  }> = [];
+  const filesWithoutLastModified: string[] = [];
+
+  do {
+    const { Contents, NextContinuationToken } = (await s3Client.send(
+      new ListObjectsV2Command({
+        Bucket: S3_BUCKET,
+        ...(continuationToken ? { ContinuationToken: continuationToken } : {}),
+      }),
+    )) as {
+      Contents?: _Object[];
+      NextContinuationToken: string | undefined;
+    };
+    Contents?.forEach(({ Key, LastModified }) => {
+      if (Key?.endsWith("/")) {
+        // Ignore directories
+        return;
+      } else if (Key && LastModified) {
+        files.push({ key: Key, lastModified: LastModified });
+      } else if (Key && !LastModified) {
+        filesWithoutLastModified.push(Key);
+      }
+    });
+    continuationToken = NextContinuationToken;
+  } while (continuationToken);
+
+  return [files, filesWithoutLastModified] as const;
 }
 
 export async function upload(localPath: string, key: string) {
