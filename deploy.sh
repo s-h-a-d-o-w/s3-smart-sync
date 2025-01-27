@@ -4,7 +4,7 @@ set -e
 export CAPROVER_APP=s3-smart-sync
 export CAPROVER_TAR_FILE=./caprover_deployment.tar
 
-pnpm esbuild ./src/server.ts --bundle --platform=node --target=node20 --external:*.node --outfile=server.js
+pnpm build:server
 
 echo "Creating archive out of repo and build artifacts..."
 tar -cf ./caprover_deployment.tar server.js Dockerfile

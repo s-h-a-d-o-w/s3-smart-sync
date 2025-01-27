@@ -10,6 +10,7 @@
     "build:sea": "build-sea.bat",
     "build:pkg": "pkg -t node20-win-x64 dist/index.cjs -o s3-smart-sync.exe",
     "build:pkg:linux": "pkg -t node20-linux-x64 dist/index.cjs -o s3-smart-sync",
+    "build:server": "pnpm esbuild ./src/server.ts --bundle --platform=node --target=node20 --external:*.node --outfile=server.js",
     "bundle": "esbuild ./src/client/index.ts --bundle --platform=node --target=node20 --external:*.node --outfile=dist/index.cjs",
     "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
     "dev:client": "tsx ./src/client debug",
