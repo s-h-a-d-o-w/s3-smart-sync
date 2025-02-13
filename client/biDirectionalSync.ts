@@ -1,7 +1,7 @@
 import { statSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { logger } from "../utils/logger.js";
+import { logger } from "@s3-smart-sync/shared/logger.js";
 import { LOCAL_DIR } from "./consts.js";
 import {
   convertAbsolutePathToKey,

@@ -9,7 +9,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { mkdir, readFile, stat, utimes, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import { logger } from "../utils/logger.js";
+import { logger } from "@s3-smart-sync/shared/logger.js";
 import {
   ACCESS_KEY,
   AWS_REGION,

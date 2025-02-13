@@ -1,23 +1,13 @@
 {
   "name": "s3-smart-sync",
   "version": "1.0.4",
-  "main": "./src/server.ts",
-  "type": "module",
   "license": "MIT",
+  "private": true,
   "scripts": {
-    "build:client": "rimraf dist && pnpm bundle && copy-winax.bat && pnpm build:pkg && timeout 5 && pnpm silenceexe && pnpm changeicon && build-zip.bat",
-    "build:client:linux": "rimraf dist && pnpm bundle && pnpm build:pkg:linux && ./build-targz.sh",
-    "build:sea": "build-sea.bat",
-    "build:pkg": "pkg -t node20-win-x64 dist/index.cjs -o s3-smart-sync.exe",
-    "build:pkg:linux": "pkg -t node20-linux-x64 dist/index.cjs -o s3-smart-sync",
-    "build:server": "esbuild ./src/server.ts --bundle --platform=node --target=node20 --external:*.node --outfile=server.js",
-    "bundle": "esbuild ./src/client/index.ts --bundle --platform=node --target=node20 --external:*.node --outfile=dist/index.cjs",
-    "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
-    "dev:client": "tsx ./src/client debug",
-    "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe",
-    "start": "tsx .",
-    "start:client": "tsx ./src/client cli",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "dev": "pnpm -r dev",
+    "start": "pnpm -r start",
+    "typecheck": "tsc"
   },
   "pnpm": {
     "overrides": {
@@ -30,44 +20,17 @@
     ]
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.701.0",
     "@eslint/compat": "^1.2.3",
     "@eslint/js": "^9.15.0",
-    "@types/auto-launch": "^5.0.5",
-    "@types/aws-lambda": "^8.10.146",
-    "@types/body-parser": "^1.19.5",
     "@types/eslint__js": "^8.42.3",
-    "@types/express": "^5.0.0",
-    "@types/lodash": "^4.17.13",
     "@types/node": "^20.17.9",
-    "@types/ws": "^8.5.13",
-    "@yao-pkg/pkg": "^6.1.1",
-    "auto-launch": "^5.0.6",
-    "chokidar": "^4.0.1",
-    "create-nodew-exe": "^2.1.0",
     "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
-    "exe-edit": "^0.1.1",
     "globals": "^15.12.0",
-    "lodash": "^4.17.21",
-    "node-tray": "^1.0.6",
     "prettier": "^3.4.1",
-    "rimraf": "^6.0.1",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.16.0",
-    "winax": "^3.6.1",
-    "winston": "^3.17.0"
-  },
-  "dependencies": {
-    "@aws-sdk/client-sns": "^3.699.0",
-    "body-parser": "^1.20.3",
-    "dotenv": "^16.4.5",
-    "esbuild": "^0.24.0",
-    "express": "^4.21.1",
-    "tsx": "^4.19.2",
-    "untildify": "^5.0.0",
-    "ws": "^8.18.0"
+    "typescript-eslint": "^8.16.0"
   },
   "packageManager": "pnpm@10.2.0+sha512.0d27364e0139c6aadeed65ada153135e0ca96c8da42123bd50047f961339dc7a758fc2e944b428f52be570d1bd3372455c1c65fa2e7aa0bfbf931190f9552001"
 }

@@ -3,7 +3,7 @@ import "./globalErrorHandling.js";
 
 import { mkdir, stat, unlink } from "fs/promises";
 import { join } from "path";
-import { logger } from "../utils/logger.js";
+import { logger } from "@s3-smart-sync/shared/logger.js";
 import { LOCAL_DIR } from "./consts.js";
 import {
   convertAbsolutePathToKey,
@@ -26,8 +26,8 @@ import {
   setUpTrayIcon,
   TrayIconState,
 } from "./trayIcon.js";
-import { fileExists } from "../utils/fileExists.js";
-import { getErrorMessage } from "../utils/getErrorMessage.js";
+import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
+import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.js";
 
 async function main() {
   await setUpTrayIcon();

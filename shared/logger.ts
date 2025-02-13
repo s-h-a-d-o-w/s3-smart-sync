@@ -17,6 +17,7 @@ const logLevel = getLogLevel();
 const myFormat = combine(
   timestamp(),
   printf(({ level, message, timestamp }) => {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     return `${timestamp} [${level}]: ${message}`;
   }),
 );
