@@ -4,7 +4,7 @@ import AutoLaunch from "auto-launch";
 import { basename, dirname } from "node:path";
 import { fileExists } from "../utils/fileExists.js";
 import { writeFile } from "node:fs/promises";
-import { version } from "../../package.json";
+import packageJson from "../../package.json" assert { type: "json" };
 import { IS_WINDOWS } from "./consts.js";
 import {
   createTrayIcon,
@@ -75,7 +75,7 @@ export async function setUpTrayIcon() {
   items.push(
     {
       id: Symbol(),
-      text: `v${version}`,
+      text: `v${packageJson.version}`,
       enabled: false,
     },
     {

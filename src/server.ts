@@ -8,15 +8,12 @@ import bodyParser from "body-parser";
 import { ConfirmSubscriptionCommand, SNSClient } from "@aws-sdk/client-sns";
 import type { SNSMessage } from "aws-lambda";
 import { getEnvironmentVariables } from "./getEnvironmentVariables.js";
-
+import { getHeartbeatInterval } from "./utils/getHeartbeatInterval.js";
 interface ExtendedWebSocket extends WebSocket {
   isAlive?: boolean;
 }
 
-const HEARTBEAT_INTERVAL = parseInt(
-  process.env["HEARTBEAT_INTERVAL"] || "5000",
-  10,
-);
+const HEARTBEAT_INTERVAL = getHeartbeatInterval();
 const { AWS_REGION, ACCESS_KEY, SECRET_KEY } = getEnvironmentVariables(
   "AWS_REGION",
   "ACCESS_KEY",
@@ -87,11 +84,15 @@ wss.on("connection", (client: ExtendedWebSocket) => {
     client.isAlive = true;
   });
 
-  console.log("New WebSocket client connected");
   clients.add(client);
+  console.log(
+    `New WebSocket client connected. (Number of clients: ${clients.size})`,
+  );
 
   client.on("close", () => {
-    console.log("WebSocket client disconnected");
+    console.log(
+      `WebSocket client disconnected. (Number of clients: ${clients.size})`,
+    );
     clients.delete(client);
   });
 });

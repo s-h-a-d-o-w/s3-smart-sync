@@ -7,12 +7,21 @@ import { RECONNECT_DELAY, WEBSOCKET_URL } from "./consts.js";
 import { resumeFileWatcher, suspendFileWatcher } from "./fileWatcher.js";
 import { changeTrayIconState, TrayIconState } from "./trayIcon.js";
 import { updateTrayTooltip } from "./trayWrapper.js";
+import { getHeartbeatInterval } from "../utils/getHeartbeatInterval.js";
 
 type RemoteToLocalOperation = (key: string) => void;
 
-// Storing the websocket globally makes it possible for the garbage collector to clean up unused ones when reconnects happen.
+// Storing the websocket globally makes it possible for the garbage collector to clean up unused ones when many reconnect attempts happen.
 let ws: WebSocket | undefined;
 let logError = true;
+let connectionDropTimeout: NodeJS.Timeout | undefined;
+
+function connectionDropCheck() {
+  clearTimeout(connectionDropTimeout);
+  connectionDropTimeout = setTimeout(() => {
+    ws?.terminate();
+  }, getHeartbeatInterval() * 3);
+}
 
 export function setUpWebsocket(
   downloadFile: RemoteToLocalOperation,
@@ -25,7 +34,12 @@ export function setUpWebsocket(
 
     ws = new WebSocket(WEBSOCKET_URL);
 
-    ws.on("open", async () => {
+    connectionDropCheck();
+
+    ws.on("ping", connectionDropCheck);
+
+    ws.on("open", () => {
+      connectionDropCheck();
       logger.info(`Connected to ${WEBSOCKET_URL}`);
       logError = true;
       updateTrayTooltip("S3 Smart Sync");
@@ -33,16 +47,25 @@ export function setUpWebsocket(
 
       // Although we have the promise for the initial file watcher creation, we have to suspend here in case of reconnects.
       suspendFileWatcher();
-      await biDirectionalSync();
-      resumeFileWatcher();
-
-      changeTrayIconState(TrayIconState.Idle);
-      resolve();
+      // We don't await this so that pongs can be sent during sync.
+      biDirectionalSync()
+        .then(() => {
+          /* empty */
+        })
+        .catch((error) => {
+          logger.error(`Error during initial sync: ${getErrorMessage(error)}`);
+        })
+        .finally(() => {
+          changeTrayIconState(TrayIconState.Idle);
+          resumeFileWatcher();
+          resolve();
+        });
     });
 
     ws.on("message", (data) => {
       if (!(data instanceof Buffer)) {
-        throw new Error("Only messages of type `Buffer` are supported.");
+        logger.error("Only messages of type `Buffer` are supported.");
+        return;
       }
 
       try {
@@ -87,7 +110,7 @@ export function setUpWebsocket(
     });
 
     ws.on("close", () => {
-      logger.info("Disconnected from WebSocket server");
+      logger.error("Disconnected from WebSocket server");
       changeTrayIconState(TrayIconState.Disconnected);
       updateTrayTooltip("S3 Smart Sync (Disconnected)");
       setTimeout(
