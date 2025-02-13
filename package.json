@@ -1,6 +1,6 @@
 {
   "name": "s3-smart-sync",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "./src/server.ts",
   "type": "module",
   "license": "MIT",
