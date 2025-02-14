@@ -4,7 +4,7 @@ ENV NODE_ENV production
 ENV PORT 80
 
 # Building presumably already happened
-COPY . .
+COPY server.js .
 
 EXPOSE 80
 CMD [ "node", "server.js" ]

@@ -1,10 +1,10 @@
 {
   "name": "@s3-smart-sync/server",
-  "version": "1.0.4",
-  "main": "./src/server.ts",
+  "version": "1.0.0",
+  "main": "server.ts",
   "type": "module",
   "scripts": {
-    "build": "esbuild ./src/server.ts --bundle --platform=node --target=node20 --external:*.node --outfile=server.js",
+    "build": "esbuild server.ts --bundle --platform=node --target=node22  --external:*.node --outfile=server.js",
     "start": "tsx ."
   },
   "dependencies": {
