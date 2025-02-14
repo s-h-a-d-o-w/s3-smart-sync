@@ -19,7 +19,7 @@ jobs:
           node-version: 22
       - name: Install, build
         run: |
-          pnpm install
+          pnpm --ignore-scripts --filter server install
           cd server
           pnpm build
       - name: Set up Docker Buildx
