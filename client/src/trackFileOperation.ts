@@ -1,4 +1,4 @@
-import { logger } from "../utils/logger.js";
+import { logger } from "@s3-smart-sync/shared/logger.js";
 import { destroyTrayIcon } from "./trayWrapper.js";
 
 const LONG_OBSERVATION_DURATION = 10000;

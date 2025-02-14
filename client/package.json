@@ -1,0 +1,41 @@
+{
+  "name": "@s3-smart-sync/client",
+  "version": "1.0.4",
+  "main": "./src/index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "rimraf dist && pnpm bundle && copy-winax.bat && pnpm build:pkg && timeout 5 && pnpm silenceexe && pnpm changeicon && wsl ./build-win.sh",
+    "build:linux": "rimraf dist && pnpm bundle && pnpm build:pkg:linux && wsl ./build-linux.sh",
+    "build:sea": "build-sea.bat",
+    "build:pkg": "pkg -t node22-win-x64 dist/index.cjs -o s3-smart-sync.exe",
+    "build:pkg:linux": "pkg -t node22-linux-x64 dist/index.cjs -o s3-smart-sync",
+    "bundle": "esbuild ./src/index.ts --bundle --platform=node --target=node22 --external:*.node --outfile=dist/index.cjs",
+    "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
+    "dev": "tsx . debug",
+    "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe",
+    "start": "tsx . cli"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.701.0",
+    "@s3-smart-sync/shared": "workspace:*",
+    "auto-launch": "^5.0.6",
+    "chokidar": "^4.0.1",
+    "dotenv": "^16.4.5",
+    "lodash": "^4.17.21",
+    "node-tray": "^1.0.6",
+    "untildify": "^5.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/auto-launch": "^5.0.5",
+    "@types/aws-lambda": "^8.10.146",
+    "@types/lodash": "^4.17.13",
+    "@types/ws": "^8.5.13",
+    "@yao-pkg/pkg": "^6.1.1",
+    "create-nodew-exe": "^2.1.0",
+    "esbuild": "^0.24.0",
+    "exe-edit": "^0.1.1",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.2"
+  }
+}

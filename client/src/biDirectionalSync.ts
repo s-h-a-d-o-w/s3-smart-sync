@@ -1,7 +1,7 @@
 import { statSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { logger } from "../utils/logger.js";
+import { logger } from "@s3-smart-sync/shared/logger.js";
 import { LOCAL_DIR } from "./consts.js";
 import {
   convertAbsolutePathToKey,
@@ -17,8 +17,11 @@ async function listLocalFiles(dir: string) {
     lastModified: Date;
   }> = [];
 
-  const whatever = await readdir(dir, { recursive: true, withFileTypes: true });
-  whatever.forEach((dummy) => {
+  const directoryEntries = await readdir(dir, {
+    recursive: true,
+    withFileTypes: true,
+  });
+  directoryEntries.forEach((dummy) => {
     // No destructuring here because node code uses `this`.
     if (dummy.isFile()) {
       const fullPath = join(dummy.parentPath, dummy.name);

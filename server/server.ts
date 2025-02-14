@@ -7,8 +7,8 @@ import WebSocket from "ws";
 import bodyParser from "body-parser";
 import { ConfirmSubscriptionCommand, SNSClient } from "@aws-sdk/client-sns";
 import type { SNSMessage } from "aws-lambda";
-import { getEnvironmentVariables } from "./getEnvironmentVariables.js";
-import { getHeartbeatInterval } from "./utils/getHeartbeatInterval.js";
+import { getEnvironmentVariables } from "@s3-smart-sync/shared/getEnvironmentVariables.js";
+import { getHeartbeatInterval } from "@s3-smart-sync/shared/getHeartbeatInterval.js";
 interface ExtendedWebSocket extends WebSocket {
   isAlive?: boolean;
 }

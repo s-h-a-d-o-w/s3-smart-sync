@@ -10,77 +10,19 @@ overrides:
 importers:
 
   .:
-    dependencies:
-      '@aws-sdk/client-sns':
-        specifier: ^3.699.0
-        version: 3.699.0
-      body-parser:
-        specifier: ^1.20.3
-        version: 1.20.3
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.4.5
-      esbuild:
-        specifier: ^0.24.0
-        version: 0.24.0
-      express:
-        specifier: ^4.21.1
-        version: 4.21.1
-      tsx:
-        specifier: ^4.19.2
-        version: 4.19.2
-      untildify:
-        specifier: ^5.0.0
-        version: 5.0.0
-      ws:
-        specifier: ^8.18.0
-        version: 8.18.0
     devDependencies:
-      '@aws-sdk/client-s3':
-        specifier: ^3.701.0
-        version: 3.701.0
       '@eslint/compat':
         specifier: ^1.2.3
         version: 1.2.3(eslint@9.15.0)
       '@eslint/js':
         specifier: ^9.15.0
         version: 9.15.0
-      '@types/auto-launch':
-        specifier: ^5.0.5
-        version: 5.0.5
-      '@types/aws-lambda':
-        specifier: ^8.10.146
-        version: 8.10.146
-      '@types/body-parser':
-        specifier: ^1.19.5
-        version: 1.19.5
       '@types/eslint__js':
         specifier: ^8.42.3
         version: 8.42.3
-      '@types/express':
-        specifier: ^5.0.0
-        version: 5.0.0
-      '@types/lodash':
-        specifier: ^4.17.13
-        version: 4.17.13
       '@types/node':
         specifier: ^20.17.9
         version: 20.17.9
-      '@types/ws':
-        specifier: ^8.5.13
-        version: 8.5.13
-      '@yao-pkg/pkg':
-        specifier: ^6.1.1
-        version: 6.1.1(encoding@0.1.13)
-      auto-launch:
-        specifier: ^5.0.6
-        version: 5.0.6
-      chokidar:
-        specifier: ^4.0.1
-        version: 4.0.1
-      create-nodew-exe:
-        specifier: ^2.1.0
-        version: 2.1.0
       eslint:
         specifier: ^9.15.0
         version: 9.15.0
@@ -90,30 +32,125 @@ importers:
       eslint-plugin-prettier:
         specifier: ^5.2.1
         version: 5.2.1(@types/eslint@9.6.1)(eslint-config-prettier@9.1.0(eslint@9.15.0))(eslint@9.15.0)(prettier@3.4.1)
-      exe-edit:
-        specifier: ^0.1.1
-        version: 0.1.1
       globals:
         specifier: ^15.12.0
         version: 15.12.0
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.21
-      node-tray:
-        specifier: ^1.0.6
-        version: 1.0.6
       prettier:
         specifier: ^3.4.1
         version: 3.4.1
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.0.1
       typescript:
         specifier: ^5.7.2
         version: 5.7.2
       typescript-eslint:
         specifier: ^8.16.0
         version: 8.16.0(eslint@9.15.0)(typescript@5.7.2)
+
+  client:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.701.0
+        version: 3.701.0
+      '@s3-smart-sync/shared':
+        specifier: workspace:*
+        version: link:../shared
+      auto-launch:
+        specifier: ^5.0.6
+        version: 5.0.6
+      chokidar:
+        specifier: ^4.0.1
+        version: 4.0.1
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.5
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
+      node-tray:
+        specifier: ^1.0.6
+        version: 1.0.6
+      untildify:
+        specifier: ^5.0.0
+        version: 5.0.0
+      ws:
+        specifier: ^8.18.0
+        version: 8.18.0
+    devDependencies:
+      '@types/auto-launch':
+        specifier: ^5.0.5
+        version: 5.0.5
+      '@types/aws-lambda':
+        specifier: ^8.10.146
+        version: 8.10.146
+      '@types/lodash':
+        specifier: ^4.17.13
+        version: 4.17.13
+      '@types/ws':
+        specifier: ^8.5.13
+        version: 8.5.13
+      '@yao-pkg/pkg':
+        specifier: ^6.1.1
+        version: 6.1.1(encoding@0.1.13)
+      create-nodew-exe:
+        specifier: ^2.1.0
+        version: 2.1.0
+      esbuild:
+        specifier: ^0.24.0
+        version: 0.24.0
+      exe-edit:
+        specifier: ^0.1.1
+        version: 0.1.1
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.0.1
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
+
+  server:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.701.0
+        version: 3.701.0
+      '@aws-sdk/client-sns':
+        specifier: ^3.699.0
+        version: 3.699.0
+      '@s3-smart-sync/shared':
+        specifier: workspace:*
+        version: link:../shared
+      body-parser:
+        specifier: ^1.20.3
+        version: 1.20.3
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.5
+      express:
+        specifier: ^4.21.1
+        version: 4.21.1
+      ws:
+        specifier: ^8.18.0
+        version: 8.18.0
+    devDependencies:
+      '@types/aws-lambda':
+        specifier: ^8.10.146
+        version: 8.10.146
+      '@types/body-parser':
+        specifier: ^1.19.5
+        version: 1.19.5
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.0
+      '@types/ws':
+        specifier: ^8.5.13
+        version: 8.5.13
+      esbuild:
+        specifier: ^0.24.0
+        version: 0.24.0
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
+
+  shared:
+    dependencies:
       winax:
         specifier: ^3.6.1
         version: 3.6.1
