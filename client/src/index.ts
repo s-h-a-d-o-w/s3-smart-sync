@@ -1,8 +1,8 @@
 import "dotenv/config";
 import "./globalErrorHandling.js";
 
-import { mkdir, stat, unlink } from "fs/promises";
-import { join } from "path";
+import { mkdir, stat, unlink } from "node:fs/promises";
+import { join } from "node:path";
 import { logger } from "@s3-smart-sync/shared/logger.js";
 import { LOCAL_DIR } from "./consts.js";
 import {

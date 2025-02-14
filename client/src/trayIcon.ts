@@ -1,10 +1,8 @@
-import { getLogLevel, logger } from "@s3-smart-sync/shared/logger.js";
-import debounce from "lodash/debounce.js";
 import AutoLaunch from "auto-launch";
 import { basename, dirname } from "node:path";
 import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
 import { writeFile } from "node:fs/promises";
-import packageJson from "./package.json" assert { type: "json" };
+import packageJson from "../package.json" assert { type: "json" };
 import { IS_WINDOWS } from "./consts.js";
 import {
   createTrayIcon,
@@ -13,6 +11,8 @@ import {
   updateTrayIconImage,
   updateTrayItem,
 } from "./trayWrapper.js";
+import { debounce } from "lodash";
+import { getLogLevel, logger } from "@s3-smart-sync/shared/logger.js";
 
 export enum TrayIconState {
   Idle,
