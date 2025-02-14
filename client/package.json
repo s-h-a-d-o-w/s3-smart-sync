@@ -4,8 +4,8 @@
   "main": "./src/index.ts",
   "type": "module",
   "scripts": {
-    "build": "rimraf dist && pnpm bundle && copy-winax.bat && pnpm build:pkg && timeout 5 && pnpm silenceexe && pnpm changeicon && build.bat",
-    "build:linux": "rimraf dist && pnpm bundle && pnpm build:pkg:linux && ./build-targz.sh",
+    "build": "rimraf dist && pnpm bundle && copy-winax.bat && pnpm build:pkg && timeout 5 && pnpm silenceexe && pnpm changeicon && wsl ./build-win.sh",
+    "build:linux": "rimraf dist && pnpm bundle && pnpm build:pkg:linux && wsl ./build-linux.sh",
     "build:sea": "build-sea.bat",
     "build:pkg": "pkg -t node22-win-x64 dist/index.cjs -o s3-smart-sync.exe",
     "build:pkg:linux": "pkg -t node22-linux-x64 dist/index.cjs -o s3-smart-sync",

@@ -2,7 +2,7 @@ import AutoLaunch from "auto-launch";
 import { basename, dirname } from "node:path";
 import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
 import { writeFile } from "node:fs/promises";
-import packageJson from "../package.json" assert { type: "json" };
+import packageJson from "../package.json" with { type: "json" };
 import { IS_WINDOWS } from "./consts.js";
 import {
   createTrayIcon,
