@@ -1,5 +1,5 @@
 import chokidar, { FSWatcher } from "chokidar";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce.js";
 import { logger } from "@s3-smart-sync/shared/logger.js";
 import { LOCAL_DIR } from "./consts.js";
 
@@ -49,6 +49,12 @@ export function suspendFileWatcher() {
 export function resumeFileWatcher() {
   if (watcher) {
     watcher.add(LOCAL_DIR);
+  }
+}
+
+export async function cleanupFileWatcher() {
+  if (watcher) {
+    await watcher.close();
   }
 }
 

@@ -2,7 +2,15 @@ import winston, { format } from "winston";
 
 const { combine, timestamp, printf } = format;
 
+const IS_PKG = process.pkg !== undefined;
+const IS_DEV = process.env["NODE_ENV"] !== "production";
+
 export function getLogLevel() {
+  // server has NODE_ENV set in production and the client pkg
+  if (!IS_PKG && IS_DEV) {
+    return "debug";
+  }
+
   return !process.argv[2]
     ? "error"
     : process.argv[2] === "info" || process.argv.includes("cli")
@@ -32,15 +40,11 @@ if (logLevel === "info" || logLevel === "debug") {
 export const logger = winston.createLogger({
   level: logLevel,
   format: myFormat,
-  transports,
+  transports: IS_PKG
+    ? transports
+    : [
+        new winston.transports.Console({
+          format: myFormat,
+        }),
+      ],
 });
-
-// If we're not in production then log to the `console` with the format:
-// `${info.level}: ${info.message} JSON.stringify({ ...rest }) `
-if (process.env["NODE_ENV"] !== "production") {
-  logger.add(
-    new winston.transports.Console({
-      format: myFormat,
-    }),
-  );
-}

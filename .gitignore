@@ -1,4 +1,7 @@
 .env
+.env.*
+!.env.schema
+!.env.test.schema
 .tsimp
 .vscode
 build

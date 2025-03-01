@@ -14,6 +14,7 @@ type RemoteToLocalOperation = (key: string) => void;
 // Storing the websocket globally makes it possible for the garbage collector to clean up unused ones when many reconnect attempts happen.
 let ws: WebSocket | undefined;
 let logError = true;
+let isShuttingDown = false;
 let connectionDropTimeout: NodeJS.Timeout | undefined;
 
 function connectionDropCheck() {
@@ -21,6 +22,25 @@ function connectionDropCheck() {
   connectionDropTimeout = setTimeout(() => {
     ws?.terminate();
   }, getHeartbeatInterval() * 3);
+}
+
+export function cleanupWebsocket() {
+  if (isShuttingDown) {
+    return;
+  }
+  isShuttingDown = true;
+
+  if (ws) {
+    return new Promise<void>((resolve) => {
+      ws?.on("close", () => {
+        ws = undefined;
+        resolve();
+      });
+
+      ws?.removeAllListeners();
+      ws?.close();
+    });
+  }
 }
 
 export function setUpWebsocket(
@@ -110,6 +130,10 @@ export function setUpWebsocket(
     });
 
     ws.on("close", () => {
+      if (isShuttingDown) {
+        return;
+      }
+
       logger.error("Disconnected from WebSocket server");
       changeTrayIconState(TrayIconState.Disconnected);
       updateTrayTooltip("S3 Smart Sync (Disconnected)");

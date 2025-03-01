@@ -14,12 +14,13 @@ import {
   upToDate,
 } from "./s3Operations.js";
 import {
+  cleanupFileWatcher,
   FileOperationType,
   ignoreNext,
   setUpFileWatcher,
   unignoreNext,
 } from "./fileWatcher.js";
-import { setUpWebsocket } from "./setUpWebsocket.js";
+import { cleanupWebsocket, setUpWebsocket } from "./setUpWebsocket.js";
 import { trackFileOperation } from "./trackFileOperation.js";
 import {
   changeTrayIconState,
@@ -28,6 +29,13 @@ import {
 } from "./trayIcon.js";
 import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
 import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.js";
+import { destroyTrayIcon } from "./trayWrapper.js";
+
+export async function shutdown() {
+  destroyTrayIcon();
+  await cleanupWebsocket();
+  await cleanupFileWatcher();
+}
 
 async function main() {
   await setUpTrayIcon();

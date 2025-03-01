@@ -6,13 +6,13 @@ import packageJson from "../package.json" with { type: "json" };
 import { IS_WINDOWS } from "./consts.js";
 import {
   createTrayIcon,
-  destroyTrayIcon,
   TrayItem,
   updateTrayIconImage,
   updateTrayItem,
 } from "./trayWrapper.js";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce.js";
 import { getLogLevel, logger } from "@s3-smart-sync/shared/logger.js";
+import { shutdown } from "./index.js";
 
 export enum TrayIconState {
   Idle,
@@ -103,9 +103,10 @@ export async function setUpTrayIcon() {
     {
       id: Symbol(),
       text: "Exit",
-      onClick: () => {
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      onClick: async () => {
         logger.info("Exiting...");
-        destroyTrayIcon();
+        await shutdown();
         process.exit(0);
       },
     },

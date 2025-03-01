@@ -2,15 +2,17 @@
   "name": "@s3-smart-sync/server",
   "version": "1.0.0",
   "main": "server.ts",
-  "type": "module",
   "scripts": {
     "build": "esbuild server.ts --bundle --platform=node --target=node22  --external:*.node --outfile=server.js",
-    "start": "tsx ."
+    "build:test": "esbuild server.ts --watch --bundle --platform=node --target=node22  --external:*.node --outfile=server.js",
+    "dev": "tsx .",
+    "dev:test": "cross-env PORT=4321 tsx .",
+    "start": "node server.js"
   },
   "dependencies": {
-    "@s3-smart-sync/shared": "workspace:*",
     "@aws-sdk/client-s3": "^3.701.0",
     "@aws-sdk/client-sns": "^3.699.0",
+    "@s3-smart-sync/shared": "workspace:*",
     "body-parser": "^1.20.3",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
@@ -21,6 +23,7 @@
     "@types/body-parser": "^1.19.5",
     "@types/express": "^5.0.0",
     "@types/ws": "^8.5.13",
+    "cross-env": "^7.0.3",
     "esbuild": "^0.24.0",
     "tsx": "^4.19.2"
   }

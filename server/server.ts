@@ -9,6 +9,7 @@ import { ConfirmSubscriptionCommand, SNSClient } from "@aws-sdk/client-sns";
 import type { SNSMessage } from "aws-lambda";
 import { getEnvironmentVariables } from "@s3-smart-sync/shared/getEnvironmentVariables.js";
 import { getHeartbeatInterval } from "@s3-smart-sync/shared/getHeartbeatInterval.js";
+
 interface ExtendedWebSocket extends WebSocket {
   isAlive?: boolean;
 }
@@ -90,10 +91,10 @@ wss.on("connection", (client: ExtendedWebSocket) => {
   );
 
   client.on("close", () => {
+    clients.delete(client);
     console.log(
       `WebSocket client disconnected. (Number of clients: ${clients.size})`,
     );
-    clients.delete(client);
   });
 });
 
@@ -106,6 +107,6 @@ setInterval(function ping() {
   });
 }, HEARTBEAT_INTERVAL);
 
-server.listen(80, () => {
-  console.log(`Server is running.`);
+server.listen(process.env["PORT"] ?? 80, () => {
+  console.log(`Server is running on port ${process.env["PORT"] ?? 80}.`);
 });
