@@ -10,7 +10,7 @@ export enum FileOperationType {
 }
 
 let watcher: FSWatcher | undefined;
-const IGNORE_CLEANUP_DURATION = 1000;
+export const IGNORE_CLEANUP_DURATION = 1000;
 const ignoreMaps = {
   [FileOperationType.Remove]: new Map<string, number>(),
   [FileOperationType.Sync]: new Map<string, number>(),

@@ -9,6 +9,7 @@ import { ConfirmSubscriptionCommand, SNSClient } from "@aws-sdk/client-sns";
 import type { SNSMessage } from "aws-lambda";
 import { getEnvironmentVariables } from "@s3-smart-sync/shared/getEnvironmentVariables.js";
 import { getHeartbeatInterval } from "@s3-smart-sync/shared/getHeartbeatInterval.js";
+import { logger } from "@s3-smart-sync/shared/logger";
 
 interface ExtendedWebSocket extends WebSocket {
   isAlive?: boolean;
@@ -57,12 +58,15 @@ app.post("/sns", async (req, res) => {
           Token: message.Token,
         });
         await snsClient.send(command);
-        console.log("SNS subscription confirmed");
+        logger.info("SNS subscription confirmed");
       } catch (error) {
-        console.error("Error confirming SNS subscription:", error);
+        logger.error("Error confirming SNS subscription:", error);
       }
     } else {
-      // console.log(`Will forward a ${message.Type} to ${clients.size} clients.`);
+      logger.info("Received message:", message);
+      // logger.info(
+      //   `Will forward a ${message.Type} to ${clients.size} clients.`,
+      // );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify(message));
@@ -70,7 +74,7 @@ app.post("/sns", async (req, res) => {
       });
     }
   } catch (_) {
-    console.error("Received a non-SNS request.");
+    logger.error("Received a non-SNS request.");
     res.sendStatus(400);
     return;
   }
@@ -86,13 +90,13 @@ wss.on("connection", (client: ExtendedWebSocket) => {
   });
 
   clients.add(client);
-  console.log(
+  logger.info(
     `New WebSocket client connected. (Number of clients: ${clients.size})`,
   );
 
   client.on("close", () => {
     clients.delete(client);
-    console.log(
+    logger.info(
       `WebSocket client disconnected. (Number of clients: ${clients.size})`,
     );
   });
@@ -107,6 +111,19 @@ setInterval(function ping() {
   });
 }, HEARTBEAT_INTERVAL);
 
+// Add these handlers before the server.listen call
+process.on("SIGTERM", () => {
+  logger.info("Received SIGTERM signal, shutting down...");
+  // Delay exit to allow logs to flush
+  setTimeout(() => process.exit(0), 100);
+});
+
+process.on("SIGINT", () => {
+  logger.info("Received SIGINT signal, shutting down...");
+  // Delay exit to allow logs to flush
+  setTimeout(() => process.exit(0), 100);
+});
+
 server.listen(process.env["PORT"] ?? 80, () => {
-  console.log(`Server is running on port ${process.env["PORT"] ?? 80}.`);
+  logger.info(`Server is running on port ${process.env["PORT"] ?? 80}.`);
 });

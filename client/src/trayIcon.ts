@@ -107,7 +107,8 @@ export async function setUpTrayIcon() {
       onClick: async () => {
         logger.info("Exiting...");
         await shutdown();
-        process.exit(0);
+        // Delay exit to allow logs to flush
+        setTimeout(() => process.exit(0), 100);
       },
     },
   );

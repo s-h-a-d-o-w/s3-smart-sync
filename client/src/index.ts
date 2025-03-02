@@ -32,6 +32,7 @@ import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.js";
 import { destroyTrayIcon } from "./trayWrapper.js";
 
 export async function shutdown() {
+  logger.info("Shutting down...");
   destroyTrayIcon();
   await cleanupWebsocket();
   await cleanupFileWatcher();
@@ -44,6 +45,7 @@ async function main() {
   await mkdir(LOCAL_DIR, { recursive: true });
 
   async function downloadFile(key: string) {
+    logger.info(`downloadFile: ${key}`);
     const localPath = join(LOCAL_DIR, key);
     if (await upToDate(key)) {
       logger.debug(`downloadFile: Already up to date: ${localPath}`);

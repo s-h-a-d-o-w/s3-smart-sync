@@ -2,7 +2,6 @@
   "name": "@s3-smart-sync/client",
   "version": "1.0.4",
   "main": "./src/index.ts",
-  "type": "module",
   "scripts": {
     "package": "rimraf dist && pnpm build && copy-winax.bat && pnpm package:pkg && timeout 5 && pnpm silenceexe && pnpm changeicon && wsl ./package-win.sh",
     "package:linux": "rimraf dist && pnpm build && pnpm package:pkg:linux && wsl ./package-linux.sh",

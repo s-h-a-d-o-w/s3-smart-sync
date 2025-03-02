@@ -134,15 +134,15 @@ export async function upload(localPath: string, key: string) {
 }
 
 export async function upToDate(key: string) {
-  const fullPath = join(LOCAL_DIR, key);
-
-  const lastModifiedRemote = await getLastModified(key);
   let lastModifiedLocal: Date | undefined;
   try {
-    lastModifiedLocal = (await stat(fullPath)).mtime;
+    lastModifiedLocal = (await stat(join(LOCAL_DIR, key))).mtime;
   } catch (_) {
     // File doesn't exist locally
+    return false;
   }
 
-  return lastModifiedLocal?.valueOf() === lastModifiedRemote?.valueOf();
+  return (
+    lastModifiedLocal?.valueOf() === (await getLastModified(key))?.valueOf()
+  );
 }
