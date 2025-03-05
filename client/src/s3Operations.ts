@@ -35,7 +35,18 @@ async function syncLastModified(localPath: string, lastModified?: Date) {
   }
 }
 
-export function convertAbsolutePathToKey(path: string) {
+export async function convertAbsolutePathToKey(path: string) {
+  try {
+    const stats = await stat(path);
+    if (stats.isDirectory()) {
+      // For directories, ensure the key ends with a forward slash
+      const preliminaryKey = relative(LOCAL_DIR, path).replaceAll("\\", "/");
+      return preliminaryKey + (preliminaryKey.endsWith("/") ? "" : "/");
+    }
+  } catch (_) {
+    // empty
+  }
+
   return relative(LOCAL_DIR, path).replaceAll("\\", "/");
 }
 
@@ -62,6 +73,12 @@ export async function deleteObject(key: string) {
 }
 
 export async function download(key: string, localPath: string) {
+  if (key.endsWith("/")) {
+    logger.info(`Creating directory locally: ${localPath}`);
+    await mkdir(localPath, { recursive: true });
+    return;
+  }
+
   logger.info(`Downloading: ${key}`);
   const { Body, LastModified } = await s3Client.send(
     new GetObjectCommand({
@@ -102,10 +119,7 @@ export async function listS3Files() {
       NextContinuationToken: string | undefined;
     };
     Contents?.forEach(({ Key, LastModified }) => {
-      if (Key?.endsWith("/")) {
-        // Ignore directories
-        return;
-      } else if (Key && LastModified) {
+      if (Key && LastModified) {
         files.push({ key: Key, lastModified: LastModified });
       } else if (Key && !LastModified) {
         filesWithoutLastModified.push(Key);
@@ -118,6 +132,18 @@ export async function listS3Files() {
 }
 
 export async function upload(localPath: string, key: string) {
+  if (key.endsWith("/")) {
+    logger.info(`Creating directory on s3: ${key}`);
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: key,
+        Body: "",
+      }),
+    );
+    return;
+  }
+
   logger.info(`Uploading: ${key}`);
   const fileContent = await readFile(localPath);
   await s3Client.send(

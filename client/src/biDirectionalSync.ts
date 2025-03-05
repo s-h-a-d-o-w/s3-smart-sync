@@ -21,17 +21,16 @@ async function listLocalFiles(dir: string) {
     recursive: true,
     withFileTypes: true,
   });
-  directoryEntries.forEach((dummy) => {
-    // No destructuring here because node code uses `this`.
-    if (dummy.isFile()) {
-      const fullPath = join(dummy.parentPath, dummy.name);
-      // TODO: check whether file really is in the format of a key
+  await Promise.all(
+    // No destructuring of `entry` because node code relies on `this`!
+    directoryEntries.map(async (entry) => {
+      const fullPath = join(entry.parentPath, entry.name);
       files.push({
-        key: convertAbsolutePathToKey(fullPath),
+        key: await convertAbsolutePathToKey(fullPath),
         lastModified: statSync(fullPath).mtime,
       });
-    }
-  });
+    }),
+  );
 
   return files;
 }

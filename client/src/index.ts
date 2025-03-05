@@ -1,7 +1,7 @@
 import "dotenv/config";
 import "./globalErrorHandling.js";
 
-import { mkdir, stat, unlink } from "node:fs/promises";
+import { mkdir, rm, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { logger } from "@s3-smart-sync/shared/logger.js";
 import { LOCAL_DIR } from "./consts.js";
@@ -75,11 +75,17 @@ async function main() {
 
     try {
       changeTrayIconState(TrayIconState.Busy);
-
       ignoreNext(FileOperationType.Remove, localPath);
-      await unlink(localPath);
+
+      if ((await stat(localPath)).isDirectory()) {
+        await rm(localPath, { recursive: true, force: true });
+        logger.info(`Removed local directory: ${key}`);
+      } else {
+        await unlink(localPath);
+        logger.info(`Removed local file: ${key}`);
+      }
+
       trackFileOperation(key);
-      logger.info(`Removed local file: ${key}`);
     } catch (error) {
       unignoreNext(FileOperationType.Remove, localPath);
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
@@ -95,7 +101,7 @@ async function main() {
   }
 
   async function removeFile(localPath: string) {
-    const key = convertAbsolutePathToKey(localPath);
+    const key = await convertAbsolutePathToKey(localPath);
     try {
       await getLastModified(key);
     } catch (_) {
@@ -118,7 +124,7 @@ async function main() {
   }
 
   async function syncFile(localPath: string) {
-    const key = convertAbsolutePathToKey(localPath);
+    const key = await convertAbsolutePathToKey(localPath);
 
     try {
       if (await upToDate(key)) {

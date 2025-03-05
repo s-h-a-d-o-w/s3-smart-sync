@@ -8,7 +8,7 @@ import {
 import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
 import { logger } from "@s3-smart-sync/shared/logger.js";
 import { ChildProcess, spawn } from "node:child_process";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path, { join } from "node:path";
 import {
   ACCESS_KEY,
@@ -24,6 +24,8 @@ const SERVER_URL = process.env["WEBSOCKET_URL"]!.replace("ws", "http");
 const TEST_FILES = {
   "test1.txt": "Hello World",
   "folder1/test2.txt": "Nested file content",
+  // Empty folders have to declare a body of either "" or Buffer.from("")
+  "folder1/empty/": "",
   "folder2/test3.txt": "Another nested file",
 };
 
@@ -124,6 +126,38 @@ async function createFile(baseDir: string, key: string, content: string) {
   });
 }
 
+async function sendSnsMessage(key: string, operation: "put" | "delete") {
+  const message = {
+    Type: "Notification",
+    MessageId: "dummy",
+    MessageAttributes: {},
+    TopicArn: "dummy",
+    Message: JSON.stringify({
+      Records: [
+        {
+          eventName:
+            operation === "put" ? "ObjectCreated:Put" : "ObjectRemoved:Delete",
+          s3: {
+            bucket: { name: S3_BUCKET },
+            object: { key },
+          },
+        },
+      ],
+    }),
+    Timestamp: new Date().toISOString(),
+    SignatureVersion: "1",
+    Signature: "test-signature",
+    SigningCertUrl: "test-cert-url",
+    UnsubscribeUrl: "test-unsub-url",
+  };
+
+  await fetch(SERVER_URL + "/sns", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(message),
+  });
+}
+
 function killProcess(proc: ChildProcess | undefined): Promise<void> {
   return new Promise((resolve) => {
     if (!proc) {
@@ -146,16 +180,22 @@ function pause(ms: number) {
 async function verifyFiles(clientDir: string) {
   for (const [key, expectedContent] of Object.entries(TEST_FILES)) {
     const filePath = join(clientDir, key);
-    const exists = await fileExists(filePath);
-    if (!exists) {
+
+    if (!(await fileExists(filePath))) {
       throw new Error(`File ${filePath} does not exist`);
     }
 
-    const content = await readFile(filePath, "utf-8");
-    if (content !== expectedContent) {
-      throw new Error(
-        `Content mismatch for ${filePath}. Expected: ${expectedContent}, Got: ${content}`,
-      );
+    if (key.endsWith("/")) {
+      if (!(await stat(filePath)).isDirectory()) {
+        throw new Error(`Expected ${filePath} to be a directory, but it's not`);
+      }
+    } else {
+      const content = await readFile(filePath, "utf-8");
+      if (content !== expectedContent) {
+        throw new Error(
+          `Content mismatch for ${filePath}. Expected: ${expectedContent}, Got: ${content}`,
+        );
+      }
     }
   }
 }
@@ -217,7 +257,7 @@ describe("E2E Tests", () => {
       "node",
       [path.join(__dirname, "../dist/index.cjs"), "cli"],
       {
-        stdio: "inherit",
+        // stdio: "inherit",
         env: { ...process.env, LOCAL_DIR: CLIENT_1_DIR },
       },
     );
@@ -225,7 +265,7 @@ describe("E2E Tests", () => {
       "node",
       [path.join(__dirname, "../dist/index.cjs"), "cli"],
       {
-        stdio: "inherit",
+        // stdio: "inherit",
         env: { ...process.env, LOCAL_DIR: CLIENT_2_DIR },
       },
     );
@@ -263,5 +303,26 @@ describe("E2E Tests", () => {
         "Changed content",
       ),
     );
+  });
+
+  test("should handle replacing a file with an empty directory", async () => {
+    await createFile(CLIENT_1_DIR, "file-then-directory", "starts as a file");
+    await waitUntil(async () =>
+      expect(await fileExists(join(CLIENT_2_DIR, "file-then-directory"))).toBe(
+        true,
+      ),
+    );
+
+    await rm(join(CLIENT_1_DIR, "file-then-directory"));
+    await sendSnsMessage("file-then-directory", "delete");
+    await pause(IGNORE_CLEANUP_DURATION + 10);
+
+    await mkdir(join(CLIENT_1_DIR, "file-then-directory"));
+    await sendSnsMessage("file-then-directory/", "put");
+
+    await waitUntil(async () => {
+      const stats = await stat(join(CLIENT_2_DIR, "file-then-directory"));
+      return stats.isDirectory();
+    });
   });
 });

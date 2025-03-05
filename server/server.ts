@@ -63,7 +63,7 @@ app.post("/sns", async (req, res) => {
         logger.error("Error confirming SNS subscription:", error);
       }
     } else {
-      logger.info("Received message:", message);
+      logger.info(`Received message: ${JSON.stringify(message, null, 2)}`);
       // logger.info(
       //   `Will forward a ${message.Type} to ${clients.size} clients.`,
       // );
