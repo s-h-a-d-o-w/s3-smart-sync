@@ -40,18 +40,6 @@ const s3Client = new S3Client({
   },
 });
 
-async function uploadTestFiles() {
-  for (const [key, content] of Object.entries(TEST_FILES)) {
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: key,
-        Body: Buffer.from(content),
-      }),
-    );
-  }
-}
-
 // Limited to 1000 objects!
 async function cleanupS3() {
   try {
@@ -76,9 +64,14 @@ async function cleanupS3() {
   }
 }
 
-async function cleanupLocalDirs() {
+async function cleanupLocalDirs(fully?: boolean) {
   await rm(CLIENT_1_DIR, { recursive: true, force: true });
   await rm(CLIENT_2_DIR, { recursive: true, force: true });
+
+  if (!fully) {
+    await mkdir(CLIENT_1_DIR, { recursive: true });
+    await mkdir(CLIENT_2_DIR, { recursive: true });
+  }
 }
 
 async function createFile(baseDir: string, key: string, content: string) {
@@ -241,10 +234,19 @@ let client2Process: ChildProcess | undefined;
 
 describe("E2E Tests", () => {
   beforeAll(async () => {
+    // test file syncing while we start everything necessary for all tests
     await mkdir(CLIENT_1_DIR, { recursive: true });
     await mkdir(CLIENT_2_DIR, { recursive: true });
 
-    await uploadTestFiles();
+    for (const [key, content] of Object.entries(TEST_FILES)) {
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: key,
+          Body: Buffer.from(content),
+        }),
+      );
+    }
 
     serverProcess = spawn(
       "node",
@@ -278,8 +280,7 @@ describe("E2E Tests", () => {
 
   afterAll(async () => {
     await cleanupS3();
-    await cleanupLocalDirs();
-
+    await cleanupLocalDirs(true);
     await Promise.all([
       killProcess(client1Process),
       killProcess(client2Process),
@@ -287,7 +288,12 @@ describe("E2E Tests", () => {
     ]);
   });
 
-  test("should sync file changes between clients", async () => {
+  beforeEach(async () => {
+    await cleanupS3();
+    await cleanupLocalDirs();
+  });
+
+  it("should sync file changes between clients", async () => {
     await createFile(CLIENT_1_DIR, "new-file.txt", "New content");
     await waitUntil(async () =>
       expect(await readFile(join(CLIENT_2_DIR, "new-file.txt"), "utf-8")).toBe(
@@ -305,7 +311,7 @@ describe("E2E Tests", () => {
     );
   });
 
-  test("should handle replacing a file with an empty directory", async () => {
+  it("should handle replacing a file with an empty directory", async () => {
     await createFile(CLIENT_1_DIR, "file-then-directory", "starts as a file");
     await waitUntil(async () =>
       expect(await fileExists(join(CLIENT_2_DIR, "file-then-directory"))).toBe(
@@ -325,4 +331,56 @@ describe("E2E Tests", () => {
       return stats.isDirectory();
     });
   });
+
+  it("should handle replacing an empty directory with a file", async () => {
+    await mkdir(join(CLIENT_1_DIR, "directory-then-file"));
+    await sendSnsMessage("directory-then-file/", "put");
+    await waitUntil(async () => {
+      const stats = await stat(join(CLIENT_2_DIR, "directory-then-file"));
+      return stats.isDirectory();
+    });
+
+    await rm(join(CLIENT_1_DIR, "directory-then-file"), { recursive: true });
+    await sendSnsMessage("directory-then-file/", "delete");
+    await pause(IGNORE_CLEANUP_DURATION + 10);
+
+    await createFile(CLIENT_1_DIR, "directory-then-file", "now it's a file");
+    await waitUntil(async () => {
+      expect(
+        await readFile(join(CLIENT_2_DIR, "directory-then-file"), "utf-8"),
+      ).toBe("now it's a file");
+    });
+  });
+
+  // it("handles duplicate file/directory on S3", async () => {
+  //   await s3Client.send(
+  //     new PutObjectCommand({
+  //       Bucket: S3_BUCKET,
+  //       Key: "duplicate-file",
+  //       Body: Buffer.from(""),
+  //     }),
+  //   );
+  //   await s3Client.send(
+  //     new PutObjectCommand({
+  //       Bucket: S3_BUCKET,
+  //       Key: "duplicate-file/",
+  //       Body: Buffer.from(""),
+  //     }),
+  //   );
+
+  //   await sendSnsMessage("duplicate-file/", "put");
+  //   await waitUntil(async () => {
+  //     const stats = await stat(join(CLIENT_1_DIR, "duplicate-file/"));
+  //     return stats.isDirectory();
+  //   });
+
+  //   const { Contents } = await s3Client.send(
+  //     new ListObjectsV2Command({
+  //       Bucket: S3_BUCKET,
+  //       Prefix: "duplicate-file/",
+  //     }),
+  //   );
+  //   expect(Contents?.length).toBe(1);
+  //   expect(Contents?.[0]?.Key).toBe("duplicate-file/");
+  // });
 });
