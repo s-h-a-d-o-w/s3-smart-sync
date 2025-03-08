@@ -54,11 +54,18 @@ export async function cleanupS3() {
   }
 }
 
-export async function createClientDirectories(ids: number[]) {
-  for (const id of ids) {
-    const clientDirectory = join(__dirname, `test-client-${id}`);
-    await mkdir(clientDirectory, { recursive: true });
-  }
+export async function createClientDirectories<T extends readonly number[]>(
+  ids: T,
+) {
+  return Object.fromEntries(
+    await Promise.all(
+      ids.map(async (id) => {
+        const clientDirectory = join(__dirname, `test-client-${id}`);
+        await mkdir(clientDirectory, { recursive: true });
+        return [id, clientDirectory] as const;
+      }),
+    ),
+  ) as Record<T[number], string>;
 }
 
 export function startClients(ids: number[], debugId?: number) {
@@ -112,18 +119,32 @@ export async function cleanupLocalDirectories(fully?: boolean) {
 
 export async function createFile(id: number, key: string, content: string) {
   const clientDirectory = join(__dirname, `test-client-${id}`);
-  await writeFile(join(clientDirectory, key), content);
+  if (key.endsWith("/")) {
+    await mkdir(join(clientDirectory, key), { recursive: true });
+  } else {
+    await mkdir(path.dirname(join(clientDirectory, key)), { recursive: true });
+    await writeFile(join(clientDirectory, key), content);
+  }
 
+  // We have to check content in case the file already existed
   await waitUntil(async () => {
-    const { Body } = await s3Client.send(
-      new GetObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: key,
-      }),
-    );
-
-    const actualContent = await Body?.transformToString();
-    return actualContent === content;
+    if (key.endsWith("/")) {
+      await s3Client.send(
+        new GetObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: key,
+        }),
+      );
+    } else {
+      const { Body } = await s3Client.send(
+        new GetObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: key,
+        }),
+      );
+      const actualContent = await Body?.transformToString();
+      return actualContent === content;
+    }
   });
 
   await sendSnsMessage(key, "put");
