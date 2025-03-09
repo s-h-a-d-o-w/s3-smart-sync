@@ -13,10 +13,12 @@
     "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
     "dev": "tsx . debug",
     "dev:cli": "tsx . cli",
-    "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe"
+    "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe",
+    "playground": "tsx ./playground.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.701.0",
+    "@aws-sdk/lib-storage": "^3.758.0",
     "@s3-smart-sync/shared": "workspace:*",
     "auto-launch": "^5.0.6",
     "chokidar": "^4.0.1",

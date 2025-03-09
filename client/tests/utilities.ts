@@ -68,17 +68,32 @@ export async function createClientDirectories<T extends readonly number[]>(
   ) as Record<T[number], string>;
 }
 
-export function startClients(ids: number[], debugId?: number) {
+export function startClients(ids: number[], debugIds?: number[]) {
   for (const id of ids) {
     const clientDirectory = join(__dirname, `test-client-${id}`);
+    const isDebug = debugIds?.includes(id);
+
     const clientProcess = spawn(
       "node",
       [path.join(__dirname, "../dist/index.cjs"), "cli"],
       {
-        stdio: id === debugId ? "inherit" : undefined,
+        stdio: isDebug ? ["ignore", "pipe", "pipe"] : undefined,
         env: { ...process.env, LOCAL_DIR: clientDirectory },
       },
     );
+
+    if (isDebug) {
+      const colorCode = 31 + (id % 6); // Colors from 31-36 (red, green, yellow, blue, magenta, cyan)
+
+      clientProcess.stdout?.on("data", (data) => {
+        process.stdout.write(`\x1b[${colorCode}m[${id}]\x1b[0m ${data}`);
+      });
+
+      clientProcess.stderr?.on("data", (data) => {
+        process.stderr.write(`\x1b[${colorCode};1m[${id}]\x1b[0m ${data}`);
+      });
+    }
+
     clients[id] = clientProcess;
   }
 }

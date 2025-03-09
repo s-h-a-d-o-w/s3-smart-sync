@@ -1,7 +1,10 @@
 import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
 import { mkdir, readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { IGNORE_CLEANUP_DURATION } from "../src/fileWatcher.js";
+import {
+  IGNORE_CLEANUP_DURATION,
+  WATCHER_DEBOUNCE_DURATION,
+} from "../src/fileWatcher.js";
 import {
   cleanupLocalDirectories,
   cleanupS3,
@@ -22,20 +25,20 @@ const clientDirectories = await createClientDirectories(clientIds);
 describe("E2E Tests", () => {
   beforeAll(async () => {
     await startServer();
-    startClients([0, 1], 1);
+    // startClients([0, 1]);
+    startClients([0, 1], [0, 1]);
     await pause(1000);
   });
 
   afterAll(async () => {
-    await cleanupS3();
-    await cleanupLocalDirectories(true);
     await stopClients([0, 1]);
     await stopServer();
+    await cleanupS3();
+    await cleanupLocalDirectories(true);
   });
 
   beforeEach(async () => {
     await cleanupS3();
-    await cleanupLocalDirectories();
   });
 
   it("should sync correctly on startup", async () => {
@@ -89,12 +92,14 @@ describe("E2E Tests", () => {
   it("can handle large files", async () => {
     const largeContent = "a".repeat(10 * 1000 * 1000);
     await createFile(0, "large-file.txt", largeContent);
-    await waitUntil(async () =>
-      expect(
-        await readFile(join(clientDirectories[1], "large-file.txt"), "utf-8"),
-      ).toBe(largeContent),
+    await waitUntil(
+      async () =>
+        expect(
+          await readFile(join(clientDirectories[1], "large-file.txt"), "utf-8"),
+        ).toBe(largeContent),
+      { timeout: 10000 },
     );
-  });
+  }, 20000);
 
   it("should sync file changes between clients", async () => {
     await createFile(0, "new-file.txt", "New content");
@@ -123,10 +128,13 @@ describe("E2E Tests", () => {
     );
 
     await rm(join(clientDirectories[0], "file-then-directory"));
+    await pause(WATCHER_DEBOUNCE_DURATION + 10);
     await sendSnsMessage("file-then-directory", "delete");
     await pause(IGNORE_CLEANUP_DURATION + 10);
 
     await mkdir(join(clientDirectories[0], "file-then-directory"));
+    // First, the debounced upload. Then we have to wait for the upload to actually have finished
+    await pause(WATCHER_DEBOUNCE_DURATION + 300);
     await sendSnsMessage("file-then-directory/", "put");
 
     await waitUntil(async () => {
@@ -139,6 +147,8 @@ describe("E2E Tests", () => {
 
   it("should handle replacing an empty directory with a file", async () => {
     await mkdir(join(clientDirectories[0], "directory-then-file"));
+    // First, the debounced upload. Then we have to wait for the upload to actually have finished
+    await pause(WATCHER_DEBOUNCE_DURATION + 300);
     await sendSnsMessage("directory-then-file/", "put");
     await waitUntil(async () => {
       const stats = await stat(

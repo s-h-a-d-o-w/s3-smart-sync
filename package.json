@@ -8,6 +8,7 @@
     "dev": "pnpm -r dev",
     "typecheck": "tsc",
     "build": "pnpm --parallel -r build",
+    "playground": "tsx playground.mts",
     "test": "pnpm build && vitest",
     "test:watch": "pnpm build && concurrently \"pnpm --parallel -r build:test\" \"vitest\""
   },

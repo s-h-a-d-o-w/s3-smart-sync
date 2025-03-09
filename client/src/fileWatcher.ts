@@ -10,7 +10,8 @@ export enum FileOperationType {
 }
 
 let watcher: FSWatcher | undefined;
-export const IGNORE_CLEANUP_DURATION = 1000;
+export const WATCHER_DEBOUNCE_DURATION = 500;
+export const IGNORE_CLEANUP_DURATION = WATCHER_DEBOUNCE_DURATION * 2;
 const ignoreMaps = {
   [FileOperationType.Remove]: new Map<string, number>(),
   [FileOperationType.Sync]: new Map<string, number>(),
@@ -24,14 +25,16 @@ export function unignoreNext(
   fileOperationType: FileOperationType,
   path: string,
 ) {
-  ignoreMaps[fileOperationType].set(path, Date.now());
+  setTimeout(() => {
+    ignoreMaps[fileOperationType].delete(path);
+  }, IGNORE_CLEANUP_DURATION);
 }
 
 function shouldIgnore(fileOperationType: FileOperationType, path: string) {
   const timestamp = ignoreMaps[fileOperationType].get(path);
   if (!timestamp) return false;
 
-  // If the ignore entry is older than 500 ms, it is probably fair to assume that although we handle errors and call unignore(), something unexpected must have happened and this is a stale entry.
+  // If the ignore entry is older than IGNORE_CLEANUP_DURATION, it is probably fair to assume that although we handle errors and call unignore(), something unexpected must have happened and this is a stale entry.
   if (Date.now() - timestamp > IGNORE_CLEANUP_DURATION) {
     ignoreMaps[fileOperationType].delete(path);
     return false;
@@ -83,38 +86,38 @@ export function setUpFileWatcher(
         }
 
         delete debounceMap[key];
-      }, 500);
+      }, WATCHER_DEBOUNCE_DURATION);
     }
     return debounceMap[key];
   }
 
   const wrappedDebouncedSyncFile = (localPath: string) => {
-    // Ignore triggers caused by keeping up with S3 state change.
     if (shouldIgnore(FileOperationType.Sync, localPath)) {
-      unignoreNext(FileOperationType.Sync, localPath);
-      logger.debug(`debouncedSyncFile: ignored once ${localPath}.`);
+      logger.debug(`wrappedDebouncedSyncFile: ignored ${localPath}.`);
       return;
     }
 
-    logger.debug(`debouncedSyncFile: triggering syncing ${localPath}.`);
+    logger.debug(`wrappedDebouncedSyncFile: debouncing sync for ${localPath}.`);
     getDebouncedFunction(FileOperationType.Sync, localPath)();
   };
   const wrappedDebouncedRemoveFile = (localPath: string) => {
-    // Ignore triggers caused by keeping up with S3 state change.
     if (shouldIgnore(FileOperationType.Remove, localPath)) {
-      unignoreNext(FileOperationType.Remove, localPath);
-      logger.debug(`debouncedSyncFile: ignored once ${localPath}.`);
+      logger.debug(`wrappedDebouncedRemoveFile: ignored ${localPath}.`);
       return;
     }
 
-    logger.debug(`debouncedRemoveFile: triggering removing ${localPath}.`);
+    logger.debug(
+      `wrappedDebouncedRemoveFile: debouncing removal of ${localPath}.`,
+    );
     getDebouncedFunction(FileOperationType.Remove, localPath)();
   };
 
   watcher
     .on("add", wrappedDebouncedSyncFile)
+    .on("addDir", wrappedDebouncedSyncFile)
     .on("change", wrappedDebouncedSyncFile)
-    .on("unlink", wrappedDebouncedRemoveFile);
+    .on("unlink", wrappedDebouncedRemoveFile)
+    .on("unlinkDir", wrappedDebouncedRemoveFile);
 
   logger.info(`Watching for changes in ${LOCAL_DIR}`);
 }

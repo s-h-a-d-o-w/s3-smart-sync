@@ -4,12 +4,14 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
-  PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { mkdir, readFile, stat, utimes, writeFile } from "node:fs/promises";
-import { dirname, join, relative } from "node:path";
+import { Upload } from "@aws-sdk/lib-storage";
 import { logger } from "@s3-smart-sync/shared/logger.js";
+import { createReadStream, createWriteStream } from "node:fs";
+import { mkdir, stat, utimes } from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
+import { pipeline } from "stream/promises";
 import {
   ACCESS_KEY,
   AWS_REGION,
@@ -17,7 +19,7 @@ import {
   S3_BUCKET,
   SECRET_KEY,
 } from "./consts.js";
-import { FileOperationType, ignoreNext } from "./fileWatcher.js";
+import { FileOperationType, ignoreNext, unignoreNext } from "./fileWatcher.js";
 
 export const s3Client = new S3Client({
   region: AWS_REGION,
@@ -32,6 +34,7 @@ async function syncLastModified(localPath: string, lastModified?: Date) {
     logger.debug(`syncLastModified: added ${localPath} to ignore files.`);
     ignoreNext(FileOperationType.Sync, localPath);
     await utimes(localPath, lastModified, lastModified);
+    unignoreNext(FileOperationType.Sync, localPath);
   }
 }
 
@@ -73,13 +76,28 @@ export async function deleteObject(key: string) {
 }
 
 export async function download(key: string, localPath: string) {
+  logger.info(`Downloading: ${key}`);
+
   if (key.endsWith("/")) {
-    logger.info(`Creating directory locally: ${localPath}`);
-    await mkdir(localPath, { recursive: true });
+    const { LastModified } = await s3Client.send(
+      new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: key,
+      }),
+    );
+
+    ignoreNext(FileOperationType.Sync, localPath);
+    try {
+      await mkdir(localPath, { recursive: true });
+      await syncLastModified(localPath, LastModified);
+    } finally {
+      unignoreNext(FileOperationType.Sync, localPath);
+    }
+
+    logger.info(`Downloaded: ${key}`);
     return;
   }
 
-  logger.info(`Downloading: ${key}`);
   const { Body, LastModified } = await s3Client.send(
     new GetObjectCommand({
       Bucket: S3_BUCKET,
@@ -88,10 +106,17 @@ export async function download(key: string, localPath: string) {
   );
 
   if (Body) {
+    // We don't manage ignoring potentially new created directories here because that would be a lot of overhead. Instead, if syncing is triggered, we let the upload of the directory handle breaking that chain. (via updating modification time and that timestamp then being the same)
     await mkdir(dirname(localPath), { recursive: true });
+
     ignoreNext(FileOperationType.Sync, localPath);
-    await writeFile(localPath, await Body.transformToByteArray());
-    await syncLastModified(localPath, LastModified);
+    try {
+      const writeStream = createWriteStream(localPath);
+      await pipeline(Body.transformToWebStream(), writeStream);
+      await syncLastModified(localPath, LastModified);
+    } finally {
+      unignoreNext(FileOperationType.Sync, localPath);
+    }
 
     logger.info(`Downloaded: ${key}`);
   } else {
@@ -132,29 +157,19 @@ export async function listS3Files() {
 }
 
 export async function upload(localPath: string, key: string) {
-  if (key.endsWith("/")) {
-    logger.info(`Creating directory on s3: ${key}`);
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: key,
-        Body: "",
-      }),
-    );
-    return;
-  }
-
   logger.info(`Uploading: ${key}`);
-  const fileContent = await readFile(localPath);
-  await s3Client.send(
-    new PutObjectCommand({
+  await new Upload({
+    client: s3Client,
+    params: {
       Bucket: S3_BUCKET,
       Key: key,
-      Body: fileContent,
-    }),
-  );
+      Body: key.endsWith("/") ? "" : createReadStream(localPath),
+      // Hopefully will be optional in the future: https://github.com/aws/aws-sdk-js-v3/issues/6922
+      ChecksumAlgorithm: "CRC32",
+    },
+  }).done();
 
-  // We have to sync timestamps to avoid redundant, potentially infinite, operations in the future.
+  // We have to sync timestamps to avoid redundant, potentially infinite, operations.
   await syncLastModified(localPath, await getLastModified(key));
   logger.info(`Uploaded: ${key}`);
 }

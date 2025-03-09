@@ -55,13 +55,14 @@ async function main() {
     try {
       changeTrayIconState(TrayIconState.Busy);
 
+      ignoreNext(FileOperationType.Sync, localPath);
       await download(key, localPath);
       const { size } = await stat(localPath);
       trackFileOperation(key, size);
     } catch (error) {
-      unignoreNext(FileOperationType.Sync, localPath);
       logger.error(`Error downloading file ${key}: ${getErrorMessage(error)}`);
     } finally {
+      unignoreNext(FileOperationType.Sync, localPath);
       changeTrayIconState(TrayIconState.Idle);
     }
   }
@@ -87,15 +88,15 @@ async function main() {
 
       trackFileOperation(key);
     } catch (error) {
-      unignoreNext(FileOperationType.Remove, localPath);
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        logger.info(`File ${key} already removed or doesn't exist.`);
+      } else {
         logger.error(
           `Error removing local file ${key}: ${getErrorMessage(error)}`,
         );
-      } else {
-        logger.info(`File ${key} already removed or doesn't exist.`);
       }
     } finally {
+      unignoreNext(FileOperationType.Remove, localPath);
       changeTrayIconState(TrayIconState.Idle);
     }
   }
