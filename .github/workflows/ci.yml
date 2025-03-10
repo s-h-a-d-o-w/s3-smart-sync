@@ -19,7 +19,7 @@ jobs:
           node-version: 22
       - name: Install, test
         run: |
-          pnpm install
+          pnpm --ignore-scripts install
           pnpm add concurrently
           pnpm concurrently "pnpm test" "pnpm typecheck" "pnpm lint"
         env:
