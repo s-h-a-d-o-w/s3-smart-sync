@@ -1,22 +1,24 @@
 import { ChildProcess } from "child_process";
 
-import { spawn } from "child_process";
-import { mkdir, rm, writeFile } from "fs/promises";
-import path, { join } from "path";
 import {
   DeleteObjectsCommand,
   GetObjectCommand,
   ListObjectsV2Command,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
+import { logger } from "@s3-smart-sync/shared/logger.js";
+import { spawn } from "child_process";
+import { mkdir, rm, writeFile } from "fs/promises";
+import path, { join } from "path";
 import {
   ACCESS_KEY,
   AWS_REGION,
   S3_BUCKET,
   SECRET_KEY,
 } from "../src/consts.js";
-import { logger } from "@s3-smart-sync/shared/logger.js";
 
+const IS_DEBUG = false;
 const SERVER_URL = process.env["WEBSOCKET_URL"]!.replace("ws", "http");
 
 const clients: Record<number, ChildProcess> = {};
@@ -29,6 +31,17 @@ const s3Client = new S3Client({
     secretAccessKey: SECRET_KEY,
   },
 });
+
+export async function cleanupLocalDirectories(fully?: boolean) {
+  for (const id of Object.keys(clients)) {
+    const clientDirectory = join(__dirname, `test-client-${id}`);
+    await rm(clientDirectory, { recursive: true, force: true });
+
+    if (!fully) {
+      await mkdir(clientDirectory, { recursive: true });
+    }
+  }
+}
 
 // Limited to 1000 objects!
 export async function cleanupS3() {
@@ -68,70 +81,6 @@ export async function createClientDirectories<T extends readonly number[]>(
   ) as Record<T[number], string>;
 }
 
-export function startClients(ids: number[], debugIds?: number[]) {
-  for (const id of ids) {
-    const clientDirectory = join(__dirname, `test-client-${id}`);
-    const isDebug = debugIds?.includes(id);
-
-    const clientProcess = spawn(
-      "node",
-      [path.join(__dirname, "../dist/index.cjs"), "cli"],
-      {
-        stdio: isDebug ? ["ignore", "pipe", "pipe"] : undefined,
-        env: { ...process.env, LOCAL_DIR: clientDirectory },
-      },
-    );
-
-    if (isDebug) {
-      const colorCode = 31 + (id % 6); // Colors from 31-36 (red, green, yellow, blue, magenta, cyan)
-
-      clientProcess.stdout?.on("data", (data) => {
-        process.stdout.write(`\x1b[${colorCode}m[${id}]\x1b[0m ${data}`);
-      });
-
-      clientProcess.stderr?.on("data", (data) => {
-        process.stderr.write(`\x1b[${colorCode};1m[${id}]\x1b[0m ${data}`);
-      });
-    }
-
-    clients[id] = clientProcess;
-  }
-}
-
-function killProcess(proc: ChildProcess | undefined): Promise<void> {
-  return new Promise((resolve) => {
-    if (!proc) {
-      resolve();
-      return;
-    }
-
-    proc.once("exit", () => {
-      resolve();
-    });
-
-    proc.kill("SIGINT");
-  });
-}
-
-export async function stopClients(ids?: number[]) {
-  await Promise.all(
-    (ids || Object.keys(clients).map(Number)).map(async (id) => {
-      await killProcess(clients[id]);
-    }),
-  );
-}
-
-export async function cleanupLocalDirectories(fully?: boolean) {
-  for (const id of Object.keys(clients)) {
-    const clientDirectory = join(__dirname, `test-client-${id}`);
-    await rm(clientDirectory, { recursive: true, force: true });
-
-    if (!fully) {
-      await mkdir(clientDirectory, { recursive: true });
-    }
-  }
-}
-
 export async function createFile(id: number, key: string, content: string) {
   const clientDirectory = join(__dirname, `test-client-${id}`);
   if (key.endsWith("/")) {
@@ -163,6 +112,71 @@ export async function createFile(id: number, key: string, content: string) {
   });
 
   await sendSnsMessage(key, "put");
+}
+
+export function startClients(ids: number[]) {
+  for (const id of ids) {
+    const clientDirectory = join(__dirname, `test-client-${id}`);
+
+    const clientProcess = spawn(
+      "node",
+      [path.join(__dirname, "../dist/index.cjs"), "cli"],
+      {
+        stdio: IS_DEBUG ? ["ignore", "pipe", "pipe"] : undefined,
+        env: { ...process.env, LOCAL_DIR: clientDirectory },
+      },
+    );
+
+    if (IS_DEBUG) {
+      const colorCode = 31 + (id % 6); // Colors from 31-36 (red, green, yellow, blue, magenta, cyan)
+
+      clientProcess.stdout?.on("data", (data) => {
+        process.stdout.write(`\x1b[${colorCode}m[${id}]\x1b[0m ${data}`);
+      });
+
+      clientProcess.stderr?.on("data", (data) => {
+        process.stderr.write(`\x1b[${colorCode};1m[${id}]\x1b[0m ${data}`);
+      });
+    }
+
+    clients[id] = clientProcess;
+  }
+}
+
+function killProcess(proc: ChildProcess | undefined): Promise<void> {
+  return new Promise((resolve) => {
+    if (!proc) {
+      resolve();
+      return;
+    }
+
+    proc.once("exit", () => {
+      resolve();
+    });
+
+    proc.kill("SIGINT");
+  });
+}
+
+export function list(prefix: string) {
+  return s3Client.send(
+    new ListObjectsV2Command({
+      Bucket: S3_BUCKET,
+      Prefix: prefix,
+    }),
+  );
+}
+
+export function pause(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function stopClients(ids?: number[]) {
+  await Promise.all(
+    (ids || Object.keys(clients).map(Number)).map(async (id) => {
+      await killProcess(clients[id]);
+    }),
+  );
 }
 
 export async function sendSnsMessage(key: string, operation: "put" | "delete") {
@@ -214,6 +228,19 @@ export async function stopServer() {
   await killProcess(serverProcess);
 }
 
+export async function upload(key: string, body?: string) {
+  await new Upload({
+    client: s3Client,
+    params: {
+      Bucket: S3_BUCKET,
+      Key: key,
+      Body: key.endsWith("/") ? "" : body || "",
+      // Hopefully will be optional in the future: https://github.com/aws/aws-sdk-js-v3/issues/6922
+      ChecksumAlgorithm: "CRC32",
+    },
+  }).done();
+}
+
 export async function waitUntil(
   fn: () => unknown,
   {
@@ -240,8 +267,4 @@ export async function waitUntil(
   }
 
   throw new Error("Timeout waiting for condition");
-}
-
-export function pause(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

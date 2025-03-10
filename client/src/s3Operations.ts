@@ -9,7 +9,7 @@ import {
 import { Upload } from "@aws-sdk/lib-storage";
 import { logger } from "@s3-smart-sync/shared/logger.js";
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir, stat, utimes } from "node:fs/promises";
+import { mkdir, rm, stat, utimes } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { pipeline } from "stream/promises";
 import {
@@ -78,14 +78,30 @@ export async function deleteObject(key: string) {
 export async function download(key: string, localPath: string) {
   logger.info(`Downloading: ${key}`);
 
-  if (key.endsWith("/")) {
-    const { LastModified } = await s3Client.send(
-      new GetObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: key,
-      }),
-    );
+  const { Body, LastModified } = await s3Client.send(
+    new GetObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: key,
+    }),
+  );
 
+  // delete a possibly outdated local file that will be replaced by a directory
+  try {
+    const stats = await stat(localPath);
+    if (
+      stats.mtime < (LastModified ?? 0) &&
+      key.endsWith("/") &&
+      stats.isFile()
+    ) {
+      ignore(FileOperationType.Remove, localPath);
+      await rm(localPath);
+      unignore(FileOperationType.Remove, localPath);
+    }
+  } catch (_) {
+    // local file doesn't exist yet
+  }
+
+  if (key.endsWith("/")) {
     ignore(FileOperationType.Sync, localPath);
     try {
       await mkdir(localPath, { recursive: true });
@@ -97,13 +113,6 @@ export async function download(key: string, localPath: string) {
     logger.info(`Downloaded: ${key}`);
     return;
   }
-
-  const { Body, LastModified } = await s3Client.send(
-    new GetObjectCommand({
-      Bucket: S3_BUCKET,
-      Key: key,
-    }),
-  );
 
   if (Body) {
     // We don't manage ignoring potentially new created directories here because that would be a lot of overhead. Instead, if syncing is triggered, we let the upload of the directory handle breaking that chain. (via updating modification time and that timestamp then being the same)
