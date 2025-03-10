@@ -14,3 +14,5 @@ dist
 *.tar.gz
 *.log
 *.js
+
+client/tests/test-client*

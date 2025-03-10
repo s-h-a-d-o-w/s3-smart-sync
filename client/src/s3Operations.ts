@@ -19,7 +19,7 @@ import {
   S3_BUCKET,
   SECRET_KEY,
 } from "./consts.js";
-import { FileOperationType, ignoreNext, unignoreNext } from "./fileWatcher.js";
+import { FileOperationType, ignore, unignore } from "./fileWatcher.js";
 
 export const s3Client = new S3Client({
   region: AWS_REGION,
@@ -32,9 +32,9 @@ export const s3Client = new S3Client({
 async function syncLastModified(localPath: string, lastModified?: Date) {
   if (lastModified) {
     logger.debug(`syncLastModified: added ${localPath} to ignore files.`);
-    ignoreNext(FileOperationType.Sync, localPath);
+    ignore(FileOperationType.Sync, localPath);
     await utimes(localPath, lastModified, lastModified);
-    unignoreNext(FileOperationType.Sync, localPath);
+    unignore(FileOperationType.Sync, localPath);
   }
 }
 
@@ -86,12 +86,12 @@ export async function download(key: string, localPath: string) {
       }),
     );
 
-    ignoreNext(FileOperationType.Sync, localPath);
+    ignore(FileOperationType.Sync, localPath);
     try {
       await mkdir(localPath, { recursive: true });
       await syncLastModified(localPath, LastModified);
     } finally {
-      unignoreNext(FileOperationType.Sync, localPath);
+      unignore(FileOperationType.Sync, localPath);
     }
 
     logger.info(`Downloaded: ${key}`);
@@ -109,13 +109,13 @@ export async function download(key: string, localPath: string) {
     // We don't manage ignoring potentially new created directories here because that would be a lot of overhead. Instead, if syncing is triggered, we let the upload of the directory handle breaking that chain. (via updating modification time and that timestamp then being the same)
     await mkdir(dirname(localPath), { recursive: true });
 
-    ignoreNext(FileOperationType.Sync, localPath);
+    ignore(FileOperationType.Sync, localPath);
     try {
       const writeStream = createWriteStream(localPath);
       await pipeline(Body.transformToWebStream(), writeStream);
       await syncLastModified(localPath, LastModified);
     } finally {
-      unignoreNext(FileOperationType.Sync, localPath);
+      unignore(FileOperationType.Sync, localPath);
     }
 
     logger.info(`Downloaded: ${key}`);

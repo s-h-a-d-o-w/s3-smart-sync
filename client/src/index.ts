@@ -16,9 +16,9 @@ import {
 import {
   cleanupFileWatcher,
   FileOperationType,
-  ignoreNext,
+  ignore,
   setUpFileWatcher,
-  unignoreNext,
+  unignore,
 } from "./fileWatcher.js";
 import { cleanupWebsocket, setUpWebsocket } from "./setUpWebsocket.js";
 import { trackFileOperation } from "./trackFileOperation.js";
@@ -55,14 +55,14 @@ async function main() {
     try {
       changeTrayIconState(TrayIconState.Busy);
 
-      ignoreNext(FileOperationType.Sync, localPath);
+      ignore(FileOperationType.Sync, localPath);
       await download(key, localPath);
       const { size } = await stat(localPath);
       trackFileOperation(key, size);
     } catch (error) {
       logger.error(`Error downloading file ${key}: ${getErrorMessage(error)}`);
     } finally {
-      unignoreNext(FileOperationType.Sync, localPath);
+      unignore(FileOperationType.Sync, localPath);
       changeTrayIconState(TrayIconState.Idle);
     }
   }
@@ -76,7 +76,7 @@ async function main() {
 
     try {
       changeTrayIconState(TrayIconState.Busy);
-      ignoreNext(FileOperationType.Remove, localPath);
+      ignore(FileOperationType.Remove, localPath);
 
       if ((await stat(localPath)).isDirectory()) {
         await rm(localPath, { recursive: true, force: true });
@@ -96,7 +96,7 @@ async function main() {
         );
       }
     } finally {
-      unignoreNext(FileOperationType.Remove, localPath);
+      unignore(FileOperationType.Remove, localPath);
       changeTrayIconState(TrayIconState.Idle);
     }
   }

@@ -9,25 +9,24 @@ export enum FileOperationType {
   Sync,
 }
 
-let watcher: FSWatcher | undefined;
+export const UNIGNORE_DURATION = 200; // short because it only has to cover: end of operation -> file watcher trigger -> ignore that call
 export const WATCHER_DEBOUNCE_DURATION = 500;
 export const IGNORE_CLEANUP_DURATION = WATCHER_DEBOUNCE_DURATION * 2;
+
+let watcher: FSWatcher | undefined;
 const ignoreMaps = {
   [FileOperationType.Remove]: new Map<string, number>(),
   [FileOperationType.Sync]: new Map<string, number>(),
 };
 
-export function ignoreNext(fileOperationType: FileOperationType, path: string) {
+export function ignore(fileOperationType: FileOperationType, path: string) {
   ignoreMaps[fileOperationType].set(path, Date.now());
 }
 
-export function unignoreNext(
-  fileOperationType: FileOperationType,
-  path: string,
-) {
+export function unignore(fileOperationType: FileOperationType, path: string) {
   setTimeout(() => {
     ignoreMaps[fileOperationType].delete(path);
-  }, IGNORE_CLEANUP_DURATION);
+  }, UNIGNORE_DURATION);
 }
 
 function shouldIgnore(fileOperationType: FileOperationType, path: string) {
