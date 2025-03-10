@@ -20,4 +20,13 @@ jobs:
       - name: Install, test
         run: |
           pnpm install
-          pnpm test
+          pnpm add concurrently
+          pnpm concurrently "pnpm test" "pnpm typecheck" "pnpm lint"
+        env:
+          ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          AWS_REGION: eu-central-1
+          WEBSOCKET_URL: ws://localhost:4321
+          LOCAL_DIR: unused
+          PORT: 4321
