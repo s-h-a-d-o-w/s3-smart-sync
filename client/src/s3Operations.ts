@@ -38,19 +38,22 @@ async function syncLastModified(localPath: string, lastModified?: Date) {
   }
 }
 
-export async function convertAbsolutePathToKey(path: string) {
+export async function convertAbsolutePathToKey(filePath: string) {
   try {
-    const stats = await stat(path);
+    const stats = await stat(filePath);
     if (stats.isDirectory()) {
       // For directories, ensure the key ends with a forward slash
-      const preliminaryKey = relative(LOCAL_DIR, path).replaceAll("\\", "/");
+      const preliminaryKey = relative(LOCAL_DIR, filePath).replaceAll(
+        "\\",
+        "/",
+      );
       return preliminaryKey + (preliminaryKey.endsWith("/") ? "" : "/");
     }
   } catch (_) {
     // empty
   }
 
-  return relative(LOCAL_DIR, path).replaceAll("\\", "/");
+  return relative(LOCAL_DIR, filePath).replaceAll("\\", "/");
 }
 
 export async function getLastModified(key: string) {

@@ -102,14 +102,27 @@ async function main() {
   }
 
   async function removeFile(localPath: string) {
-    const key = await convertAbsolutePathToKey(localPath);
+    const preliminaryKey = await convertAbsolutePathToKey(localPath);
+
+    // because the file was already deleted locally, we don't know whether it was a directory
+    let isDirectory: boolean | undefined;
     try {
-      await getLastModified(key);
+      await getLastModified(preliminaryKey + "/");
+      isDirectory = true;
     } catch (_) {
-      logger.debug(`removeFile: Doesn't exist: ${key}`);
-      return;
+      // empty
     }
 
+    if (!isDirectory) {
+      try {
+        await getLastModified(preliminaryKey);
+      } catch (_) {
+        logger.debug(`removeFile: Doesn't exist: ${preliminaryKey}`);
+        return;
+      }
+    }
+
+    const key = isDirectory ? preliminaryKey + "/" : preliminaryKey;
     try {
       changeTrayIconState(TrayIconState.Busy);
 

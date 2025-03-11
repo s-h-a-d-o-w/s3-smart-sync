@@ -9,8 +9,8 @@ import {
 import { Upload } from "@aws-sdk/lib-storage";
 import { logger } from "@s3-smart-sync/shared/logger.js";
 import { spawn } from "child_process";
-import { mkdir, rm, writeFile } from "fs/promises";
-import path, { join } from "path";
+import { mkdir, rm, writeFile, readdir } from "node:fs/promises";
+import path, { join } from "node:path";
 import {
   ACCESS_KEY,
   AWS_REGION,
@@ -18,7 +18,7 @@ import {
   SECRET_KEY,
 } from "../src/consts.js";
 
-const IS_DEBUG = false;
+const IS_DEBUG = true;
 const SERVER_URL = process.env["WEBSOCKET_URL"]!.replace("ws", "http");
 
 const clients: Record<number, ChildProcess> = {};
@@ -32,15 +32,15 @@ const s3Client = new S3Client({
   },
 });
 
-export async function cleanupLocalDirectories(fully?: boolean) {
-  for (const id of Object.keys(clients)) {
-    const clientDirectory = join(__dirname, `test-client-${id}`);
-    await rm(clientDirectory, { recursive: true, force: true });
-
-    if (!fully) {
-      await mkdir(clientDirectory, { recursive: true });
-    }
-  }
+export async function cleanupLocalDirectories() {
+  const testClientDirectories = (await readdir(__dirname)).filter((file) =>
+    file.startsWith("test-client-"),
+  );
+  await Promise.all(
+    testClientDirectories.map((directory) =>
+      rm(join(__dirname, directory), { recursive: true, force: true }),
+    ),
+  );
 }
 
 // Limited to 1000 objects!
@@ -114,7 +114,7 @@ export async function createFile(id: number, key: string, content: string) {
   await sendSnsMessage(key, "put");
 }
 
-export function startClients(ids: number[]) {
+export function startClients(ids: readonly number[]) {
   for (const id of ids) {
     const clientDirectory = join(__dirname, `test-client-${id}`);
 
@@ -127,6 +127,11 @@ export function startClients(ids: number[]) {
       },
     );
 
+    clients[id] = clientProcess;
+    clientProcess.on("exit", () => {
+      delete clients[id];
+    });
+
     if (IS_DEBUG) {
       const colorCode = 31 + (id % 6); // Colors from 31-36 (red, green, yellow, blue, magenta, cyan)
 
@@ -138,8 +143,6 @@ export function startClients(ids: number[]) {
         process.stderr.write(`\x1b[${colorCode};1m[${id}]\x1b[0m ${data}`);
       });
     }
-
-    clients[id] = clientProcess;
   }
 }
 
@@ -171,10 +174,11 @@ export function pause(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function stopClients(ids?: number[]) {
+export async function stopClients(ids?: readonly number[]) {
   await Promise.all(
     (ids || Object.keys(clients).map(Number)).map(async (id) => {
       await killProcess(clients[id]);
+      delete clients[id];
     }),
   );
 }
@@ -226,6 +230,7 @@ export async function startServer() {
 
 export async function stopServer() {
   await killProcess(serverProcess);
+  serverProcess = undefined;
 }
 
 export async function upload(key: string, body?: string) {
@@ -267,4 +272,31 @@ export async function waitUntil(
   }
 
   throw new Error("Timeout waiting for condition");
+}
+
+export async function waitForEmptyDirectories() {
+  await waitUntil(async () => {
+    for (const id of Object.keys(clients)) {
+      if ((await readdir(join(__dirname, `test-client-${id}`))).length > 0) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+export async function withTimeout<T>(
+  promise: Promise<T>,
+  ms?: number,
+): Promise<T> {
+  const timeout = ms || 1000;
+  const timeoutError = new Error(`Operation timed out after ${timeout} ms`);
+  return await Promise.race([
+    promise,
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    new Promise((_, reject) =>
+      setTimeout(() => reject(timeoutError), timeout),
+    ) as Promise<T>,
+  ]);
 }

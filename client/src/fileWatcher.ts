@@ -2,6 +2,7 @@ import chokidar, { FSWatcher } from "chokidar";
 import debounce from "lodash/debounce.js";
 import { logger } from "@s3-smart-sync/shared/logger.js";
 import { LOCAL_DIR } from "./consts.js";
+import path from "node:path";
 
 type LocalToRemoteOperation = (localPath: string) => void;
 export enum FileOperationType {
@@ -19,23 +20,32 @@ const ignoreMaps = {
   [FileOperationType.Sync]: new Map<string, number>(),
 };
 
-export function ignore(fileOperationType: FileOperationType, path: string) {
-  ignoreMaps[fileOperationType].set(path, Date.now());
+export function ignore(fileOperationType: FileOperationType, filePath: string) {
+  // Unlike S3, chokidar doesn't use a / at the end of directory paths.
+  ignoreMaps[fileOperationType].set(
+    filePath.endsWith(path.sep)
+      ? filePath.slice(0, -path.sep.length)
+      : filePath,
+    Date.now(),
+  );
 }
 
-export function unignore(fileOperationType: FileOperationType, path: string) {
+export function unignore(
+  fileOperationType: FileOperationType,
+  filePath: string,
+) {
   setTimeout(() => {
-    ignoreMaps[fileOperationType].delete(path);
+    ignoreMaps[fileOperationType].delete(filePath);
   }, UNIGNORE_DURATION);
 }
 
-function shouldIgnore(fileOperationType: FileOperationType, path: string) {
-  const timestamp = ignoreMaps[fileOperationType].get(path);
+function shouldIgnore(fileOperationType: FileOperationType, filePath: string) {
+  const timestamp = ignoreMaps[fileOperationType].get(filePath);
   if (!timestamp) return false;
 
   // If the ignore entry is older than IGNORE_CLEANUP_DURATION, it is probably fair to assume that although we handle errors and call unignore(), something unexpected must have happened and this is a stale entry.
   if (Date.now() - timestamp > IGNORE_CLEANUP_DURATION) {
-    ignoreMaps[fileOperationType].delete(path);
+    ignoreMaps[fileOperationType].delete(filePath);
     return false;
   }
 

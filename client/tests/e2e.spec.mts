@@ -19,27 +19,43 @@ import {
   stopServer,
   upload,
   waitUntil,
+  withTimeout,
 } from "./utilities.js";
 
 const clientIds = [0, 1] as const;
-const clientDirectories = await createClientDirectories(clientIds);
+let clientDirectories: Record<number, string>;
 
 describe("E2E Tests", () => {
   beforeAll(async () => {
     await startServer();
-    startClients([0, 1]);
-    await pause(1000);
+    startClients(clientIds);
+    await pause(500);
   });
 
   afterAll(async () => {
-    await stopClients([0, 1]);
-    await stopServer();
-    await cleanupS3();
-    await cleanupLocalDirectories(true);
+    const results = [
+      ...(await Promise.allSettled([
+        withTimeout(stopClients()),
+        withTimeout(stopServer()),
+      ])),
+      ...(await Promise.allSettled([
+        withTimeout(cleanupS3()),
+        withTimeout(cleanupLocalDirectories()),
+      ])),
+    ];
+
+    const errors = results.filter((result) => result.status === "rejected");
+    if (errors.length > 0) {
+      errors.forEach((error) => {
+        console.error(error);
+      });
+    }
   });
 
   beforeEach(async () => {
     await cleanupS3();
+    await cleanupLocalDirectories();
+    clientDirectories = await createClientDirectories(clientIds);
   });
 
   it("should sync correctly on startup", async () => {
@@ -85,8 +101,8 @@ describe("E2E Tests", () => {
     startClients([0]);
 
     await waitUntil(async () => {
-      await verifyFiles(clientDirectories[0]);
-      await verifyFiles(clientDirectories[1]);
+      await verifyFiles(clientDirectories[0]!);
+      await verifyFiles(clientDirectories[1]!);
     });
   });
 
@@ -96,7 +112,10 @@ describe("E2E Tests", () => {
     await waitUntil(
       async () =>
         expect(
-          await readFile(join(clientDirectories[1], "large-file.txt"), "utf-8"),
+          await readFile(
+            join(clientDirectories[1]!, "large-file.txt"),
+            "utf-8",
+          ),
         ).toBe(largeContent),
       { timeout: 10000 },
     );
@@ -106,7 +125,7 @@ describe("E2E Tests", () => {
     await createFile(0, "new-file.txt", "New content");
     await waitUntil(async () =>
       expect(
-        await readFile(join(clientDirectories[1], "new-file.txt"), "utf-8"),
+        await readFile(join(clientDirectories[1]!, "new-file.txt"), "utf-8"),
       ).toBe("New content"),
     );
 
@@ -115,7 +134,7 @@ describe("E2E Tests", () => {
     await createFile(1, "new-file.txt", "Changed content");
     await waitUntil(async () =>
       expect(
-        await readFile(join(clientDirectories[0], "new-file.txt"), "utf-8"),
+        await readFile(join(clientDirectories[0]!, "new-file.txt"), "utf-8"),
       ).toBe("Changed content"),
     );
   });
@@ -123,39 +142,44 @@ describe("E2E Tests", () => {
   it("should handle replacing a file with an empty directory", async () => {
     await createFile(0, "file-then-directory", "starts as a file");
     await waitUntil(() =>
-      fileExists(join(clientDirectories[1], "file-then-directory")),
+      fileExists(join(clientDirectories[1]!, "file-then-directory")),
     );
 
-    await rm(join(clientDirectories[0], "file-then-directory"));
+    await rm(join(clientDirectories[0]!, "file-then-directory"));
     await pause(WATCHER_DEBOUNCE_DURATION + 10);
     await sendSnsMessage("file-then-directory", "delete");
     await pause(IGNORE_CLEANUP_DURATION + 10);
 
-    await mkdir(join(clientDirectories[0], "file-then-directory"));
+    await mkdir(join(clientDirectories[0]!, "file-then-directory"));
     // First, the debounced upload. Then we have to wait for the upload to actually have finished
     await pause(WATCHER_DEBOUNCE_DURATION + 300);
     await sendSnsMessage("file-then-directory/", "put");
 
     await waitUntil(async () =>
       (
-        await stat(join(clientDirectories[1], "file-then-directory"))
+        await stat(join(clientDirectories[1]!, "file-then-directory"))
       ).isDirectory(),
     );
   });
 
   it("should handle replacing an empty directory with a file", async () => {
-    await mkdir(join(clientDirectories[0], "directory-then-file"));
+    await mkdir(join(clientDirectories[0]!, "directory-then-file"));
     // First, the debounced upload. Then we have to wait for the upload to actually have finished
     await pause(WATCHER_DEBOUNCE_DURATION + 300);
     await sendSnsMessage("directory-then-file/", "put");
     await waitUntil(async () =>
       (
-        await stat(join(clientDirectories[1], "directory-then-file"))
+        await stat(join(clientDirectories[1]!, "directory-then-file"))
       ).isDirectory(),
     );
 
-    await rm(join(clientDirectories[0], "directory-then-file"), {
+    await rm(join(clientDirectories[0]!, "directory-then-file"), {
       recursive: true,
+    });
+    await pause(WATCHER_DEBOUNCE_DURATION + 300);
+    await waitUntil(async () => {
+      const { Contents } = await list("directory-then-file/");
+      return Contents === undefined;
     });
     await sendSnsMessage("directory-then-file/", "delete");
     await pause(IGNORE_CLEANUP_DURATION + 10);
@@ -164,7 +188,7 @@ describe("E2E Tests", () => {
     await waitUntil(async () => {
       expect(
         await readFile(
-          join(clientDirectories[1], "directory-then-file"),
+          join(clientDirectories[1]!, "directory-then-file"),
           "utf-8",
         ),
       ).toBe("now it's a file");
@@ -172,15 +196,15 @@ describe("E2E Tests", () => {
   });
 
   it("handles duplicate file/directory on S3", async () => {
-    await stopClients([0, 1]);
+    await stopClients();
     await upload("duplicate-file/", "");
     await upload("duplicate-file/nested/", "");
     await upload("duplicate-file/nested/file.txt", "...");
     await upload("duplicate-file", "");
 
-    startClients([0, 1]);
+    startClients(clientIds);
     await waitUntil(() =>
-      readFile(join(clientDirectories[0], "duplicate-file"), "utf-8"),
+      readFile(join(clientDirectories[0]!, "duplicate-file"), "utf-8"),
     );
 
     const { Contents } = await list("duplicate-file");
