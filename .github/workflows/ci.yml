@@ -10,6 +10,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      - uses: Vampire/setup-wsl@v5
       - name: Set Git to use LF
         run: |
           git config --global core.autocrlf false
