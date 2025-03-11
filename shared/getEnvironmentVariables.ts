@@ -16,7 +16,6 @@ export function getEnvironmentVariables<T extends string>(...names: T[]) {
       import("winax")
         .then((winax) => {
           const wsh = new winax.Object("WScript.Shell");
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           wsh["Popup"](
             "Missing environment variable(s): " + missing.join(", "),
             undefined,
