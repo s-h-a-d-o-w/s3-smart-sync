@@ -26,6 +26,21 @@ import {
 const clientIds = [0, 1] as const;
 let clientDirectories: Record<number, string>;
 
+const originalIt = it;
+// @ts-expect-error
+globalThis.it = (name: string, fn: () => Promise<void>, timeout?: number) => {
+  originalIt(
+    name,
+    async function () {
+      process.stdout.write(`===========================================\n`);
+      process.stdout.write(`${name}\n`);
+      process.stdout.write(`===========================================\n`);
+      return await fn();
+    },
+    timeout,
+  );
+};
+
 describe("E2E Tests", () => {
   beforeAll(async () => {
     await startServer();

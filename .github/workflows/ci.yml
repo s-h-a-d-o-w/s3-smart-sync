@@ -22,11 +22,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install, test
+          cache: pnpm
+      - name: Install dependencies
         run: |
           pnpm install
           pnpm add concurrently
-          pnpm concurrently "pnpm test" "pnpm typecheck" "pnpm lint"
+      - name: Test
+        run: pnpm concurrently "pnpm test" "pnpm typecheck" "pnpm lint"
         env:
           ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
