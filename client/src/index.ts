@@ -104,7 +104,8 @@ async function main() {
   async function removeFile(localPath: string) {
     const preliminaryKey = await convertAbsolutePathToKey(localPath);
 
-    // because the file was already deleted locally, we don't know whether it was a directory
+    // Because the file was already deleted locally, we don't know whether it was a directory
+    // (We could pass through the info from chokidar but that would be messy architecturally)
     let isDirectory: boolean | undefined;
     try {
       await getLastModified(preliminaryKey + "/");

@@ -12,7 +12,7 @@ export enum FileOperationType {
 
 export const UNIGNORE_DURATION = 200; // short because it only has to cover: end of operation -> file watcher trigger -> ignore that call
 export const WATCHER_DEBOUNCE_DURATION = 500;
-export const IGNORE_CLEANUP_DURATION = WATCHER_DEBOUNCE_DURATION * 2;
+export const IGNORE_CLEANUP_DURATION = 12 * 60 * 60 * 1000; // presumably, not even a large file transfer lasts longer than this. And this is only an emergency measure anyway.
 
 let watcher: FSWatcher | undefined;
 const ignoreMaps = {
@@ -26,25 +26,46 @@ export function ignore(fileOperationType: FileOperationType, filePath: string) {
     filePath.endsWith(path.sep)
       ? filePath.slice(0, -path.sep.length)
       : filePath,
-    Date.now(),
+    Date.now() + 1000000,
   );
+}
+
+export function resetIgnoreMaps() {
+  logger.debug("Resetting ignore maps due to connection loss");
+  ignoreMaps[FileOperationType.Remove].clear();
+  ignoreMaps[FileOperationType.Sync].clear();
 }
 
 export function unignore(
   fileOperationType: FileOperationType,
   filePath: string,
 ) {
+  // logger.debug(
+  //   `unignore: ${fileOperationType} ${filePath} ${JSON.stringify(
+  //     Array.from(ignoreMaps[fileOperationType].entries()),
+  //   )}`,
+  // );
   setTimeout(() => {
     ignoreMaps[fileOperationType].delete(filePath);
   }, UNIGNORE_DURATION);
 }
 
 function shouldIgnore(fileOperationType: FileOperationType, filePath: string) {
+  // logger.debug(
+  //   `shouldIgnore: ${fileOperationType} ${filePath} ${JSON.stringify(
+  //     Array.from(ignoreMaps[fileOperationType].entries()),
+  //   )}`,
+  // );
   const timestamp = ignoreMaps[fileOperationType].get(filePath);
   if (!timestamp) return false;
 
   // If the ignore entry is older than IGNORE_CLEANUP_DURATION, it is probably fair to assume that although we handle errors and call unignore(), something unexpected must have happened and this is a stale entry.
   if (Date.now() - timestamp > IGNORE_CLEANUP_DURATION) {
+    logger.error(
+      `Had to clean up ignore for a ${
+        fileOperationType === FileOperationType.Sync ? "sync" : "remove"
+      } operation for ${filePath}.`,
+    );
     ignoreMaps[fileOperationType].delete(filePath);
     return false;
   }

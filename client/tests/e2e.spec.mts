@@ -2,12 +2,13 @@ import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
 import { mkdir, readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  IGNORE_CLEANUP_DURATION,
+  UNIGNORE_DURATION,
   WATCHER_DEBOUNCE_DURATION,
 } from "../src/fileWatcher.js";
 import {
   cleanupLocalDirectories,
   cleanupS3,
+  clientLogs,
   createClientDirectories,
   createFile,
   list,
@@ -28,21 +29,20 @@ let clientDirectories: Record<number, string>;
 describe("E2E Tests", () => {
   beforeAll(async () => {
     await startServer();
-    startClients(clientIds);
-    await pause(500);
   });
 
   afterAll(async () => {
-    const results = [
-      ...(await Promise.allSettled([
-        withTimeout(stopClients()),
-        withTimeout(stopServer()),
-      ])),
+    const results = await Promise.allSettled([
+      withTimeout(stopClients()),
+      withTimeout(stopServer()),
+    ]);
+
+    results.push(
       ...(await Promise.allSettled([
         withTimeout(cleanupS3()),
-        withTimeout(cleanupLocalDirectories()),
+        waitUntil(() => cleanupLocalDirectories()),
       ])),
-    ];
+    );
 
     const errors = results.filter((result) => result.status === "rejected");
     if (errors.length > 0) {
@@ -53,9 +53,17 @@ describe("E2E Tests", () => {
   });
 
   beforeEach(async () => {
-    await cleanupS3();
-    await cleanupLocalDirectories();
     clientDirectories = await createClientDirectories(clientIds);
+    await startClients(clientIds);
+  });
+
+  afterEach(async () => {
+    await stopClients();
+    await Promise.all([
+      cleanupS3(),
+      // Due to windows potentially aggressively locking down the directories, we retry until it works
+      waitUntil(() => cleanupLocalDirectories()),
+    ]);
   });
 
   it("should sync correctly on startup", async () => {
@@ -92,13 +100,13 @@ describe("E2E Tests", () => {
       }
     }
 
-    await stopClients([0]);
+    await stopClients([1]);
     await Promise.all(
       Object.entries(TEST_FILES).map(([key, content]) =>
-        createFile(1, key, content),
+        createFile(0, key, content),
       ),
     );
-    startClients([0]);
+    await startClients([1]);
 
     await waitUntil(async () => {
       await verifyFiles(clientDirectories[0]!);
@@ -119,6 +127,12 @@ describe("E2E Tests", () => {
         ).toBe(largeContent),
       { timeout: 10000 },
     );
+
+    // Client 1 shouldn't do anything after the download has finished. (Which means that the ignore mechanism works with large files.)
+    await pause(WATCHER_DEBOUNCE_DURATION * 2);
+    expect(clientLogs[1]!.trim().split("\n").at(-1)?.trim()).toMatch(
+      /Downloaded: large-file\.txt$/,
+    );
   }, 20000);
 
   it("should sync file changes between clients", async () => {
@@ -128,8 +142,7 @@ describe("E2E Tests", () => {
         await readFile(join(clientDirectories[1]!, "new-file.txt"), "utf-8"),
       ).toBe("New content"),
     );
-
-    await pause(IGNORE_CLEANUP_DURATION + 10);
+    await pause(UNIGNORE_DURATION + 10);
 
     await createFile(1, "new-file.txt", "Changed content");
     await waitUntil(async () =>
@@ -146,9 +159,8 @@ describe("E2E Tests", () => {
     );
 
     await rm(join(clientDirectories[0]!, "file-then-directory"));
-    await pause(WATCHER_DEBOUNCE_DURATION + 10);
+    await pause(WATCHER_DEBOUNCE_DURATION + 300);
     await sendSnsMessage("file-then-directory", "delete");
-    await pause(IGNORE_CLEANUP_DURATION + 10);
 
     await mkdir(join(clientDirectories[0]!, "file-then-directory"));
     // First, the debounced upload. Then we have to wait for the upload to actually have finished
@@ -182,7 +194,6 @@ describe("E2E Tests", () => {
       return Contents === undefined;
     });
     await sendSnsMessage("directory-then-file/", "delete");
-    await pause(IGNORE_CLEANUP_DURATION + 10);
 
     await createFile(0, "directory-then-file", "now it's a file");
     await waitUntil(async () => {
@@ -195,14 +206,14 @@ describe("E2E Tests", () => {
     });
   });
 
-  it("handles duplicate file/directory on S3", async () => {
+  it("handles duplicate file/directory on S3 by deleting the older", async () => {
     await stopClients();
     await upload("duplicate-file/", "");
     await upload("duplicate-file/nested/", "");
     await upload("duplicate-file/nested/file.txt", "...");
     await upload("duplicate-file", "");
 
-    startClients(clientIds);
+    await startClients(clientIds);
     await waitUntil(() =>
       readFile(join(clientDirectories[0]!, "duplicate-file"), "utf-8"),
     );

@@ -18,10 +18,10 @@ import {
   SECRET_KEY,
 } from "../src/consts.js";
 
-const IS_DEBUG = true;
 const SERVER_URL = process.env["WEBSOCKET_URL"]!.replace("ws", "http");
 
 const clients: Record<number, ChildProcess> = {};
+export const clientLogs: Record<number, string> = {};
 let serverProcess: ChildProcess | undefined;
 
 const s3Client = new S3Client({
@@ -81,6 +81,9 @@ export async function createClientDirectories<T extends readonly number[]>(
   ) as Record<T[number], string>;
 }
 
+/**
+ * Includes sending SNS message
+ */
 export async function createFile(id: number, key: string, content: string) {
   const clientDirectory = join(__dirname, `test-client-${id}`);
   if (key.endsWith("/")) {
@@ -114,38 +117,6 @@ export async function createFile(id: number, key: string, content: string) {
   await sendSnsMessage(key, "put");
 }
 
-export function startClients(ids: readonly number[]) {
-  for (const id of ids) {
-    const clientDirectory = join(__dirname, `test-client-${id}`);
-
-    const clientProcess = spawn(
-      "node",
-      [path.join(__dirname, "../dist/index.cjs"), "cli"],
-      {
-        stdio: IS_DEBUG ? ["ignore", "pipe", "pipe"] : undefined,
-        env: { ...process.env, LOCAL_DIR: clientDirectory },
-      },
-    );
-
-    clients[id] = clientProcess;
-    clientProcess.on("exit", () => {
-      delete clients[id];
-    });
-
-    if (IS_DEBUG) {
-      const colorCode = 31 + (id % 6); // Colors from 31-36 (red, green, yellow, blue, magenta, cyan)
-
-      clientProcess.stdout?.on("data", (data) => {
-        process.stdout.write(`\x1b[${colorCode}m[${id}]\x1b[0m ${data}`);
-      });
-
-      clientProcess.stderr?.on("data", (data) => {
-        process.stderr.write(`\x1b[${colorCode};1m[${id}]\x1b[0m ${data}`);
-      });
-    }
-  }
-}
-
 function killProcess(proc: ChildProcess | undefined): Promise<void> {
   return new Promise((resolve) => {
     if (!proc) {
@@ -172,15 +143,6 @@ export function list(prefix: string) {
 
 export function pause(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export async function stopClients(ids?: readonly number[]) {
-  await Promise.all(
-    (ids || Object.keys(clients).map(Number)).map(async (id) => {
-      await killProcess(clients[id]);
-      delete clients[id];
-    }),
-  );
 }
 
 export async function sendSnsMessage(key: string, operation: "put" | "delete") {
@@ -215,6 +177,59 @@ export async function sendSnsMessage(key: string, operation: "put" | "delete") {
   });
 }
 
+export async function startClients(ids: readonly number[]) {
+  await Promise.all(
+    ids.map(async (id) => {
+      const clientDirectory = join(__dirname, `test-client-${id}`);
+
+      const clientProcess = spawn(
+        "node",
+        [path.join(__dirname, "../dist/index.cjs"), "cli"],
+        {
+          stdio: ["ignore", "pipe", "pipe"],
+          env: { ...process.env, LOCAL_DIR: clientDirectory },
+        },
+      );
+
+      clients[id] = clientProcess;
+      clientProcess.on("exit", () => {
+        delete clients[id];
+      });
+
+      if (!clientLogs[id]) {
+        clientLogs[id] = "";
+      }
+
+      const colorCode = 31 + (id % 6); // Colors from 31-36 (red, green, yellow, blue, magenta, cyan)
+      function processBuffer(data: Buffer, stream: "stdout" | "stderr") {
+        data
+          .toString()
+          .trim()
+          .split("\n")
+          .forEach((line) => {
+            process[stream].write(`\x1b[${colorCode}m[${id}]\x1b[0m ${line}\n`);
+            clientLogs[id] += line + "\n";
+          });
+      }
+      clientProcess.stdout?.on("data", (data: Buffer) => {
+        processBuffer(data, "stdout");
+      });
+      clientProcess.stderr?.on("data", (data: Buffer) => {
+        processBuffer(data, "stderr");
+      });
+
+      await waitUntil(() => {
+        return clientLogs[id]
+          ?.trim()
+          .endsWith(`Watching for changes in ${clientDirectory}`);
+      });
+
+      // Despite waiting for the log output, it seems like the client might still not be fully ready. (Flaky tests)
+      await pause(200);
+    }),
+  );
+}
+
 export async function startServer() {
   serverProcess = spawn(
     "node",
@@ -226,6 +241,15 @@ export async function startServer() {
     const response = await fetch(SERVER_URL);
     return response.ok && (await response.text()) === "Running.";
   });
+}
+
+export async function stopClients(ids?: readonly number[]) {
+  await Promise.all(
+    (ids || Object.keys(clients).map(Number)).map(async (id) => {
+      await killProcess(clients[id]);
+      delete clients[id];
+    }),
+  );
 }
 
 export async function stopServer() {
@@ -240,8 +264,6 @@ export async function upload(key: string, body?: string) {
       Bucket: S3_BUCKET,
       Key: key,
       Body: key.endsWith("/") ? "" : body || "",
-      // Hopefully will be optional in the future: https://github.com/aws/aws-sdk-js-v3/issues/6922
-      ChecksumAlgorithm: "CRC32",
     },
   }).done();
 }

@@ -4,7 +4,11 @@ import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.js";
 import { logger } from "@s3-smart-sync/shared/logger.js";
 import { biDirectionalSync } from "./biDirectionalSync.js";
 import { RECONNECT_DELAY, WEBSOCKET_URL } from "./consts.js";
-import { resumeFileWatcher, suspendFileWatcher } from "./fileWatcher.js";
+import {
+  resetIgnoreMaps,
+  resumeFileWatcher,
+  suspendFileWatcher,
+} from "./fileWatcher.js";
 import { changeTrayIconState, TrayIconState } from "./trayIcon.js";
 import { updateTrayTooltip } from "./trayWrapper.js";
 import { getHeartbeatInterval } from "@s3-smart-sync/shared/getHeartbeatInterval.js";
@@ -137,6 +141,7 @@ export function setUpWebsocket(
       logger.error("Disconnected from WebSocket server");
       changeTrayIconState(TrayIconState.Disconnected);
       updateTrayTooltip("S3 Smart Sync (Disconnected)");
+      resetIgnoreMaps();
       setTimeout(
         setUpWebsocket,
         RECONNECT_DELAY,

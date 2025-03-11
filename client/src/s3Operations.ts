@@ -176,14 +176,12 @@ export async function upload(localPath: string, key: string) {
       Bucket: S3_BUCKET,
       Key: key,
       Body: key.endsWith("/") ? "" : createReadStream(localPath),
-      // Hopefully will be optional in the future: https://github.com/aws/aws-sdk-js-v3/issues/6922
-      ChecksumAlgorithm: "CRC32",
     },
   }).done();
+  logger.info(`Uploaded: ${key}`);
 
   // We have to sync timestamps to avoid redundant, potentially infinite, operations.
   await syncLastModified(localPath, await getLastModified(key));
-  logger.info(`Uploaded: ${key}`);
 }
 
 export async function upToDate(key: string) {
