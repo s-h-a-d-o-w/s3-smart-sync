@@ -1,5 +1,5 @@
 import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
-import { mkdir, readFile, rm, stat } from "node:fs/promises";
+import { readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
   UNIGNORE_DURATION,
@@ -10,6 +10,7 @@ import {
   cleanupS3,
   clientLogs,
   createClientDirectories,
+  createDirectory,
   createFile,
   list,
   pause,
@@ -32,9 +33,13 @@ globalThis.it = (name: string, fn: () => Promise<void>, timeout?: number) => {
   originalIt(
     name,
     async function () {
-      process.stdout.write(`===========================================\n`);
-      process.stdout.write(`${name}\n`);
-      process.stdout.write(`===========================================\n`);
+      process.stdout.write(
+        `=========================================================\n`,
+      );
+      process.stdout.write(` 🧪 ${name}\n`);
+      process.stdout.write(
+        `=========================================================\n`,
+      );
       return await fn();
     },
     timeout,
@@ -118,7 +123,9 @@ describe("E2E Tests", () => {
     await stopClients([1]);
     await Promise.all(
       Object.entries(TEST_FILES).map(([key, content]) =>
-        createFile(0, key, content),
+        key.endsWith("/")
+          ? createDirectory(0, key as `${string}/`)
+          : createFile(0, key, content),
       ),
     );
     await startClients([1]);
@@ -177,11 +184,7 @@ describe("E2E Tests", () => {
     await pause(WATCHER_DEBOUNCE_DURATION + 300);
     await sendSnsMessage("file-then-directory", "delete");
 
-    await mkdir(join(clientDirectories[0]!, "file-then-directory"));
-    // First, the debounced upload. Then we have to wait for the upload to actually have finished
-    await pause(WATCHER_DEBOUNCE_DURATION + 300);
-    await sendSnsMessage("file-then-directory/", "put");
-
+    await createDirectory(0, "file-then-directory/");
     await waitUntil(async () =>
       (
         await stat(join(clientDirectories[1]!, "file-then-directory"))
@@ -190,10 +193,7 @@ describe("E2E Tests", () => {
   });
 
   it("should handle replacing an empty directory with a file", async () => {
-    await mkdir(join(clientDirectories[0]!, "directory-then-file"));
-    // First, the debounced upload. Then we have to wait for the upload to actually have finished
-    await pause(WATCHER_DEBOUNCE_DURATION + 300);
-    await sendSnsMessage("directory-then-file/", "put");
+    await createDirectory(0, "directory-then-file/");
     await waitUntil(async () =>
       (
         await stat(join(clientDirectories[1]!, "directory-then-file"))
@@ -203,7 +203,7 @@ describe("E2E Tests", () => {
     await rm(join(clientDirectories[0]!, "directory-then-file"), {
       recursive: true,
     });
-    await pause(WATCHER_DEBOUNCE_DURATION + 300);
+    await pause(WATCHER_DEBOUNCE_DURATION + 1000);
     await waitUntil(async () => {
       const { Contents } = await list("directory-then-file/");
       return Contents === undefined;

@@ -84,34 +84,41 @@ export async function createClientDirectories<T extends readonly number[]>(
 /**
  * Includes sending SNS message
  */
+export async function createDirectory(id: number, key: `${string}/`) {
+  const clientDirectory = join(__dirname, `test-client-${id}`);
+  await mkdir(join(clientDirectory, key), { recursive: true });
+
+  await waitUntil(async () => {
+    await s3Client.send(
+      new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: key,
+      }),
+    );
+  });
+
+  await sendSnsMessage(key, "put");
+}
+
+/**
+ * Includes sending SNS message
+ */
 export async function createFile(id: number, key: string, content: string) {
   const clientDirectory = join(__dirname, `test-client-${id}`);
-  if (key.endsWith("/")) {
-    await mkdir(join(clientDirectory, key), { recursive: true });
-  } else {
-    await mkdir(path.dirname(join(clientDirectory, key)), { recursive: true });
-    await writeFile(join(clientDirectory, key), content);
-  }
+  await mkdir(path.dirname(join(clientDirectory, key)), { recursive: true });
+  await writeFile(join(clientDirectory, key), content);
 
-  // We have to check content in case the file already existed
   await waitUntil(async () => {
-    if (key.endsWith("/")) {
-      await s3Client.send(
-        new GetObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: key,
-        }),
-      );
-    } else {
-      const { Body } = await s3Client.send(
-        new GetObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: key,
-        }),
-      );
-      const actualContent = await Body?.transformToString();
-      return actualContent === content;
-    }
+    const { Body } = await s3Client.send(
+      new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: key,
+      }),
+    );
+
+    // We have to check content in case the file already existed
+    const actualContent = await Body?.transformToString();
+    return actualContent === content;
   });
 
   await sendSnsMessage(key, "put");
