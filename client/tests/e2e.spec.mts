@@ -45,6 +45,15 @@ globalThis.it = (name: string, fn: () => Promise<void>, timeout?: number) => {
     timeout,
   );
 };
+// @ts-expect-error
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+globalThis.it.only = (
+  name: string,
+  fn: () => Promise<void>,
+  timeout?: number,
+) => {
+  originalIt.only(name, fn, timeout);
+};
 
 describe("E2E Tests", () => {
   beforeAll(async () => {

@@ -9,7 +9,7 @@ import {
 import { Upload } from "@aws-sdk/lib-storage";
 import { logger } from "@s3-smart-sync/shared/logger.js";
 import { spawn } from "child_process";
-import { mkdir, rm, writeFile, readdir } from "node:fs/promises";
+import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path, { join } from "node:path";
 import {
   ACCESS_KEY,
@@ -85,19 +85,7 @@ export async function createClientDirectories<T extends readonly number[]>(
  * Includes sending SNS message
  */
 export async function createDirectory(id: number, key: `${string}/`) {
-  const clientDirectory = join(__dirname, `test-client-${id}`);
-  await mkdir(join(clientDirectory, key), { recursive: true });
-
-  await waitUntil(async () => {
-    await s3Client.send(
-      new GetObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: key,
-      }),
-    );
-  });
-
-  await sendSnsMessage(key, "put");
+  await createFile(id, key, "");
 }
 
 /**
@@ -105,21 +93,39 @@ export async function createDirectory(id: number, key: `${string}/`) {
  */
 export async function createFile(id: number, key: string, content: string) {
   const clientDirectory = join(__dirname, `test-client-${id}`);
-  await mkdir(path.dirname(join(clientDirectory, key)), { recursive: true });
-  await writeFile(join(clientDirectory, key), content);
+  if (key.endsWith("/")) {
+    await mkdir(join(clientDirectory, key), { recursive: true });
+  } else {
+    await mkdir(path.dirname(join(clientDirectory, key)), { recursive: true });
+    await writeFile(join(clientDirectory, key), content);
+  }
 
+  let lastModified: Date | undefined;
   await waitUntil(async () => {
-    const { Body } = await s3Client.send(
+    const { Body, LastModified } = await s3Client.send(
       new GetObjectCommand({
         Bucket: S3_BUCKET,
         Key: key,
       }),
     );
+    lastModified = LastModified;
 
     // We have to check content in case the file already existed
     const actualContent = await Body?.transformToString();
     return actualContent === content;
   });
+
+  // Wait for modified timestamp syncing
+  if (lastModified) {
+    await waitUntil(async () => {
+      return (
+        (await stat(join(clientDirectory, key))).mtime.valueOf() ===
+        lastModified!.valueOf()
+      );
+    });
+  } else {
+    throw new Error("No last modified info for " + key);
+  }
 
   await sendSnsMessage(key, "put");
 }
