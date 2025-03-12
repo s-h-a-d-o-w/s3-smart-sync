@@ -1,4 +1,4 @@
-<p align="center"><img src="./assets/logo.png" /></p>
+<p align="center"><img src="./client/assets/logo.png" /></p>
 
 # s3-smart-sync
 
