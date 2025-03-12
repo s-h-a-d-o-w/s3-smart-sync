@@ -27,9 +27,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Install dependencies
-        run: |
-          pnpm install
-          pnpm add concurrently
+        run: pnpm install
       - name: Test
         run: pnpm concurrently "pnpm test" "pnpm typecheck" "pnpm lint"
         env:
