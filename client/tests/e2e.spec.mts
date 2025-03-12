@@ -14,7 +14,7 @@ import {
   createFile,
   list,
   pause,
-  sendSnsMessage,
+  mockSnsMessage,
   startClients,
   startServer,
   stopClients,
@@ -191,7 +191,7 @@ describe("E2E Tests", () => {
 
     await rm(join(clientDirectories[0]!, "file-then-directory"));
     await pause(WATCHER_DEBOUNCE_DURATION + 300);
-    await sendSnsMessage("file-then-directory", "delete");
+    await mockSnsMessage("file-then-directory", "delete");
     // Wait for processing of delete SNS message
     await pause(100);
 
@@ -219,7 +219,7 @@ describe("E2E Tests", () => {
       const { Contents } = await list("directory-then-file/");
       return Contents === undefined;
     });
-    await sendSnsMessage("directory-then-file/", "delete");
+    await mockSnsMessage("directory-then-file/", "delete");
     // Wait for processing of delete SNS message
     await pause(100);
 

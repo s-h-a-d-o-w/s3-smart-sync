@@ -127,7 +127,7 @@ export async function createFile(id: number, key: string, content: string) {
     throw new Error("No last modified info for " + key);
   }
 
-  await sendSnsMessage(key, "put");
+  await mockSnsMessage(key, "put");
 }
 
 function killProcess(proc: ChildProcess | undefined): Promise<void> {
@@ -158,7 +158,7 @@ export function pause(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function sendSnsMessage(key: string, operation: "put" | "delete") {
+export async function mockSnsMessage(key: string, operation: "put" | "delete") {
   const message = {
     Type: "Notification",
     MessageId: "dummy",
