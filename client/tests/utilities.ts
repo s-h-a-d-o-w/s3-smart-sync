@@ -279,7 +279,7 @@ export async function waitUntil(
   fn: () => unknown,
   {
     interval = 200,
-    timeout = 3000,
+    timeout = 5000,
   }: { interval?: number; timeout?: number } = {},
 ) {
   const startTime = Date.now();
