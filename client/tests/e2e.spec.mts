@@ -192,6 +192,8 @@ describe("E2E Tests", () => {
     await rm(join(clientDirectories[0]!, "file-then-directory"));
     await pause(WATCHER_DEBOUNCE_DURATION + 300);
     await sendSnsMessage("file-then-directory", "delete");
+    // Wait for processing of delete SNS message
+    await pause(100);
 
     await createDirectory(0, "file-then-directory/");
     await waitUntil(async () =>
@@ -218,6 +220,8 @@ describe("E2E Tests", () => {
       return Contents === undefined;
     });
     await sendSnsMessage("directory-then-file/", "delete");
+    // Wait for processing of delete SNS message
+    await pause(100);
 
     await createFile(0, "directory-then-file", "now it's a file");
     await waitUntil(async () => {
