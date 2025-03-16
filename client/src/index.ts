@@ -4,7 +4,7 @@ import "./globalErrorHandling.js";
 import { mkdir, rm, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { logger } from "@s3-smart-sync/shared/logger.js";
-import { LOCAL_DIR } from "./consts.js";
+import { LOCAL_DIR, IS_CLI, RELEASE_URL } from "./consts.js";
 import {
   convertAbsolutePathToKey,
   deleteObject,
@@ -21,7 +21,10 @@ import {
   unignore,
 } from "./fileWatcher.js";
 import { cleanupWebsocket, setUpWebsocket } from "./setUpWebsocket.js";
-import { trackFileOperation } from "./trackFileOperation.js";
+import {
+  cleanupFileOperationsTimers,
+  trackFileOperation,
+} from "./trackFileOperation.js";
 import {
   changeTrayIconState,
   setUpTrayIcon,
@@ -30,16 +33,26 @@ import {
 import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
 import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.js";
 import { destroyTrayIcon } from "./trayWrapper.js";
+import { getUpdateVersion } from "./getUpdateVersion.js";
 
 export async function shutdown() {
   logger.info("Shutting down...");
   destroyTrayIcon();
+  cleanupFileOperationsTimers();
   await cleanupWebsocket();
   await cleanupFileWatcher();
 }
 
 async function main() {
-  await setUpTrayIcon();
+  const updateVersion = await getUpdateVersion();
+  if (IS_CLI) {
+    if (updateVersion) {
+      logger.error(`A new version is available: ${updateVersion}`);
+      logger.error(`Download at: ${RELEASE_URL}`);
+    }
+  } else {
+    await setUpTrayIcon(updateVersion);
+  }
 
   // Ensure the local sync directory exists
   await mkdir(LOCAL_DIR, { recursive: true });

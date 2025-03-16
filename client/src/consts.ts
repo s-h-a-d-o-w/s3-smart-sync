@@ -5,6 +5,9 @@ export const IS_CLI = process.argv.includes("cli");
 export const IS_PKG = Boolean(process.pkg);
 export const IS_WINDOWS = process.platform === "win32";
 
+export const RELEASE_URL =
+  "https://github.com/s-h-a-d-o-w/s3-smart-sync/releases/latest";
+
 export const RECONNECT_DELAY = parseInt(
   process.env["RECONNECT_DELAY"] || "500",
   10,

@@ -1,18 +1,19 @@
-import AutoLaunch from "auto-launch";
-import { basename, dirname } from "node:path";
 import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
+import { getLogLevel, logger } from "@s3-smart-sync/shared/logger.js";
+import AutoLaunch from "auto-launch";
+import debounce from "lodash/debounce.js";
 import { writeFile } from "node:fs/promises";
+import { basename, dirname } from "node:path";
+import open from "open";
 import packageJson from "../package.json" with { type: "json" };
-import { IS_WINDOWS } from "./consts.js";
+import { IS_WINDOWS, RELEASE_URL } from "./consts.js";
+import { shutdown } from "./index.js";
 import {
   createTrayIcon,
   TrayItem,
   updateTrayIconImage,
   updateTrayItem,
 } from "./trayWrapper.js";
-import debounce from "lodash/debounce.js";
-import { getLogLevel, logger } from "@s3-smart-sync/shared/logger.js";
-import { shutdown } from "./index.js";
 
 export enum TrayIconState {
   Idle,
@@ -54,7 +55,7 @@ export function changeTrayIconState(trayIconState: TrayIconState) {
   currentState = trayIconState;
 }
 
-export async function setUpTrayIcon() {
+export async function setUpTrayIcon(updateVersion?: string) {
   const items: TrayItem[] = [];
 
   if (getLogLevel() !== "error") {
@@ -75,8 +76,11 @@ export async function setUpTrayIcon() {
   items.push(
     {
       id: Symbol(),
-      text: `v${packageJson.version}`,
-      enabled: false,
+      text: `v${packageJson.version}${updateVersion ? ` (Update available: ${updateVersion})` : ""}`,
+      enabled: Boolean(updateVersion),
+      onClick: () => {
+        void open(RELEASE_URL);
+      },
     },
     {
       id: Symbol(),

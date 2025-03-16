@@ -5,16 +5,17 @@
   "type": "module",
   "scripts": {
     "package": "rimraf dist && pnpm build && copy-winax.bat && pnpm package:pkg && timeout 5 && pnpm silenceexe && pnpm changeicon && wsl ./package-win.sh",
+    "package:debug": "rimraf dist && pnpm build && copy-winax.bat && wsl ./package-win-debug.sh",
     "package:linux": "rimraf dist && pnpm build && pnpm package:pkg:linux && wsl ./package-linux.sh",
     "package:sea": "package-sea.bat",
     "package:pkg": "pkg -t node22-win-x64 dist/index.cjs -o s3-smart-sync.exe",
     "package:pkg:linux": "pkg -t node22-linux-x64 dist/index.cjs -o s3-smart-sync",
-    "build": "rimraf dist && esbuild ./src/index.ts --bundle --platform=node --target=node22 --external:*.node --outfile=dist/index.cjs && wsl ./copy-addons.sh",
+    "build": "rimraf dist && tsx esbuild.mts && wsl ./copy-addons.sh",
     "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
     "dev": "tsx . debug",
     "dev:cli": "tsx . cli",
     "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe",
-    "playground": "tsx ./playground.cts"
+    "playground": "tsx ./playground.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
@@ -25,6 +26,7 @@
     "dotenv": "^16.4.5",
     "lodash": "^4.17.21",
     "node-tray": "^1.0.6",
+    "open": "^10.1.0",
     "untildify": "^5.0.0",
     "ws": "^8.18.0"
   },
@@ -37,7 +39,6 @@
     "create-nodew-exe": "^2.1.0",
     "esbuild": "^0.24.0",
     "exe-edit": "^0.1.1",
-    "rimraf": "^6.0.1",
-    "tsx": "^4.19.2"
+    "rimraf": "^6.0.1"
   }
 }

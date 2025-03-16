@@ -2,6 +2,7 @@
   "name": "@s3-smart-sync/shared",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "winston": "^3.17.0",
     "winax": "^3.6.1"

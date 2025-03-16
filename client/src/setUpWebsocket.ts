@@ -33,15 +33,23 @@ export function cleanupWebsocket() {
     return;
   }
   isShuttingDown = true;
+  clearTimeout(connectionDropTimeout);
 
   if (ws) {
     return new Promise<void>((resolve) => {
-      ws?.on("close", () => {
+      ws?.removeAllListeners();
+
+      const forceCloseTimeout = setTimeout(() => {
+        logger.info("Force terminating WebSocket");
+        ws?.terminate();
+      }, 1000);
+
+      ws?.once("close", () => {
+        clearTimeout(forceCloseTimeout);
         ws = undefined;
         resolve();
       });
 
-      ws?.removeAllListeners();
       ws?.close();
     });
   }
