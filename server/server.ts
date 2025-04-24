@@ -10,6 +10,11 @@ import type { SNSMessage } from "aws-lambda";
 import { getEnvironmentVariables } from "@s3-smart-sync/shared/getEnvironmentVariables.ts";
 import { getHeartbeatInterval } from "@s3-smart-sync/shared/getHeartbeatInterval.ts";
 import { logger } from "@s3-smart-sync/shared/logger.ts";
+import { promisify } from "util";
+import MessageValidator from "sns-validator";
+
+const validator = new MessageValidator();
+const validate = promisify(validator.validate.bind(validator));
 
 interface ExtendedWebSocket extends WebSocket {
   isAlive?: boolean;
@@ -34,7 +39,6 @@ const snsClient = new SNSClient({
   },
 });
 
-// Store connected WebSocket clients
 const clients = new Set<WebSocket>();
 
 app.use(
@@ -48,9 +52,17 @@ app.get("/", (_, res) => {
 });
 
 app.post("/sns", async (req, res) => {
-  const message = req.body as SNSMessage;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    await validate(req.body);
+  } catch (error) {
+    logger.error("Invalid SNS message:", error);
+    res.sendStatus(400);
+    return;
+  }
 
   try {
+    const message = req.body as SNSMessage;
     if (message.Type === "SubscriptionConfirmation") {
       try {
         const command = new ConfirmSubscriptionCommand({
@@ -73,16 +85,15 @@ app.post("/sns", async (req, res) => {
         }
       });
     }
-  } catch (_) {
-    logger.error("Received a non-SNS request.");
-    res.sendStatus(400);
+  } catch (error) {
+    logger.error("Error processing SNS message:", error);
+    res.sendStatus(500);
     return;
   }
 
   res.sendStatus(200);
 });
 
-// WebSocket connection handler
 wss.on("connection", (client: ExtendedWebSocket) => {
   client.isAlive = true;
   client.on("pong", () => {
@@ -111,7 +122,6 @@ setInterval(function ping() {
   });
 }, HEARTBEAT_INTERVAL);
 
-// Add these handlers before the server.listen call
 process.on("SIGTERM", () => {
   logger.info("Received SIGTERM signal, shutting down...");
   // Delay exit to allow logs to flush
