@@ -11,6 +11,10 @@ export function getLogLevel() {
     return "debug";
   }
 
+  if (process.env["IS_SERVER"]) {
+    return "info";
+  }
+
   return !process.argv[2]
     ? "error"
     : process.argv[2] === "info" || process.argv.includes("cli")
