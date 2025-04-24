@@ -15,5 +15,5 @@ dist
 *.log
 *.js
 
-playground
+**/*playground.*
 client/tests/test-client*

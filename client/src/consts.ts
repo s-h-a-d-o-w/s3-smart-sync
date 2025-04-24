@@ -16,11 +16,18 @@ export const RECONNECT_DELAY = parseInt(
 const { LOCAL_DIR: RAW_LOCAL_DIR } = getEnvironmentVariables("LOCAL_DIR");
 export const LOCAL_DIR = untildify(RAW_LOCAL_DIR);
 
-export const { ACCESS_KEY, AWS_REGION, S3_BUCKET, SECRET_KEY, WEBSOCKET_URL } =
-  getEnvironmentVariables(
-    "ACCESS_KEY",
-    "AWS_REGION",
-    "S3_BUCKET",
-    "SECRET_KEY",
-    "WEBSOCKET_URL",
-  );
+export const {
+  ACCESS_KEY,
+  AWS_REGION,
+  S3_BUCKET,
+  SECRET_KEY,
+  WEBSOCKET_URL,
+  WEBSOCKET_TOKEN,
+} = getEnvironmentVariables(
+  "ACCESS_KEY",
+  "AWS_REGION",
+  "S3_BUCKET",
+  "SECRET_KEY",
+  "WEBSOCKET_URL",
+  "WEBSOCKET_TOKEN",
+);

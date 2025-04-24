@@ -3,7 +3,7 @@ import WebSocket from "ws";
 import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.js";
 import { logger } from "@s3-smart-sync/shared/logger.js";
 import { biDirectionalSync } from "./biDirectionalSync.js";
-import { RECONNECT_DELAY, WEBSOCKET_URL } from "./consts.js";
+import { RECONNECT_DELAY, WEBSOCKET_TOKEN, WEBSOCKET_URL } from "./consts.js";
 import {
   resetIgnoreMaps,
   resumeFileWatcher,
@@ -64,7 +64,7 @@ export function setUpWebsocket(
       ws.close();
     }
 
-    ws = new WebSocket(WEBSOCKET_URL);
+    ws = new WebSocket(`${WEBSOCKET_URL}?token=${WEBSOCKET_TOKEN}`);
 
     connectionDropCheck();
 

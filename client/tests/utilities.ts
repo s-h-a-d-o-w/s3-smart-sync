@@ -250,7 +250,11 @@ export async function startServer() {
       "--experimental-transform-types",
       path.join(__dirname, "../../server/server.ts"),
     ],
-    { env: process.env, stdio: "inherit" },
+    {
+      env: process.env,
+      stdio: "inherit",
+      cwd: path.join(__dirname, "../../server"),
+    },
   );
 
   await waitUntil(async () => {
