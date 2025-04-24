@@ -15,4 +15,5 @@ dist
 *.log
 *.js
 
+playground
 client/tests/test-client*
