@@ -36,5 +36,6 @@ jobs:
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
           AWS_REGION: eu-central-1
           WEBSOCKET_URL: ws://localhost:4321
+          WEBSOCKET_TOKEN: test-token-for-ci
           LOCAL_DIR: unused
           PORT: 4321
