@@ -146,7 +146,7 @@ export function setUpWebsocket(
         return;
       }
 
-      logger.error("Disconnected from WebSocket server");
+      logger.verbose("Disconnected from WebSocket server");
       changeTrayIconState(TrayIconState.Disconnected);
       updateTrayTooltip("S3 Smart Sync (Disconnected)");
       resetIgnoreMaps();
