@@ -10,10 +10,10 @@
     "package:sea": "package-sea.bat",
     "package:pkg": "pkg -t node22-win-x64 dist/index.cjs -o s3-smart-sync.exe",
     "package:pkg:linux": "pkg -t node22-linux-x64 dist/index.cjs -o s3-smart-sync",
-    "build": "rimraf dist && tsx esbuild.mts && wsl ./copy-addons.sh",
+    "build": "rimraf dist && node --experimental-transform-types esbuild.mts && wsl ./copy-addons.sh",
     "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
-    "dev": "tsx . debug",
-    "dev:cli": "tsx . cli",
+    "dev": "node --experimental-transform-types . debug",
+    "dev:cli": "node --experimental-transform-types . cli",
     "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe",
     "playground": "node --experimental-transform-types playground.ts"
   },
