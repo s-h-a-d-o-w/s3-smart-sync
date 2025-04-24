@@ -21,11 +21,13 @@ interface ExtendedWebSocket extends WebSocket {
 }
 
 const HEARTBEAT_INTERVAL = getHeartbeatInterval();
-const { AWS_REGION, ACCESS_KEY, SECRET_KEY } = getEnvironmentVariables(
-  "AWS_REGION",
-  "ACCESS_KEY",
-  "SECRET_KEY",
-);
+const { AWS_REGION, ACCESS_KEY, SECRET_KEY, WEBSOCKET_TOKEN } =
+  getEnvironmentVariables(
+    "AWS_REGION",
+    "ACCESS_KEY",
+    "SECRET_KEY",
+    "WEBSOCKET_TOKEN",
+  );
 
 const app = express();
 const server = http.createServer(app);
@@ -52,13 +54,15 @@ app.get("/", (_, res) => {
 });
 
 app.post("/sns", async (req, res) => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    await validate(req.body);
-  } catch (error) {
-    logger.error("Invalid SNS message:", error);
-    res.sendStatus(400);
-    return;
+  if (process.env["NODE_ENV"] === "production") {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      await validate(req.body);
+    } catch (error) {
+      logger.error("Invalid SNS message:", error);
+      res.sendStatus(400);
+      return;
+    }
   }
 
   try {
@@ -94,7 +98,17 @@ app.post("/sns", async (req, res) => {
   res.sendStatus(200);
 });
 
-wss.on("connection", (client: ExtendedWebSocket) => {
+wss.on("connection", (client: ExtendedWebSocket, request) => {
+  const token = new URLSearchParams(request.url?.split("?")[1] || "").get(
+    "token",
+  );
+
+  if (token !== WEBSOCKET_TOKEN) {
+    logger.warn("Unauthorized WebSocket connection attempt");
+    client.close(1008, "Unauthorized");
+    return;
+  }
+
   client.isAlive = true;
   client.on("pong", () => {
     client.isAlive = true;
