@@ -1,10 +1,10 @@
 {
   "name": "@s3-smart-sync/server",
   "version": "1.0.0",
-  "main": "server.ts",
+  "main": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "cross-env PORT=4321 tsx .",
+    "dev": "cross-env PORT=4321 node --experimental-transform-types .",
     "start": "node --experimental-transform-types ."
   },
   "dependencies": {

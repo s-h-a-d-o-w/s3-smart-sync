@@ -244,16 +244,14 @@ export async function startClients(ids: readonly number[]) {
 }
 
 export async function startServer() {
+  const serverPath = path.join(__dirname, "../../server");
   serverProcess = spawn(
     "node",
-    [
-      "--experimental-transform-types",
-      path.join(__dirname, "../../server/server.ts"),
-    ],
+    ["--experimental-transform-types", serverPath],
     {
       env: process.env,
       stdio: "inherit",
-      cwd: path.join(__dirname, "../../server"),
+      cwd: serverPath,
     },
   );
 
