@@ -1,5 +1,5 @@
 import {
-  _Object,
+  type _Object,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,

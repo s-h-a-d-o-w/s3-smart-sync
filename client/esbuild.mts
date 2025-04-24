@@ -1,4 +1,4 @@
-import { build, Plugin } from "esbuild";
+import { build, type Plugin } from "esbuild";
 
 const failOnWarningPlugin: Plugin = {
   name: "fail-on-warning",

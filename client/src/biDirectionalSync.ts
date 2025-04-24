@@ -12,7 +12,7 @@ import {
   upload,
 } from "./s3Operations.js";
 import { destroyTrayIcon } from "./trayWrapper.js";
-import { _Object, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { type _Object, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
 async function listLocalFiles(dir: string) {
   const files: Array<{

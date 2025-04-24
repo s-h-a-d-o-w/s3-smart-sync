@@ -246,7 +246,10 @@ export async function startClients(ids: readonly number[]) {
 export async function startServer() {
   serverProcess = spawn(
     "node",
-    [path.join(__dirname, "../../server/server.js")],
+    [
+      "--experimental-transform-types",
+      path.join(__dirname, "../../server/server.ts"),
+    ],
     { env: process.env, stdio: "inherit" },
   );
 

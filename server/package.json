@@ -2,12 +2,10 @@
   "name": "@s3-smart-sync/server",
   "version": "1.0.0",
   "main": "server.ts",
+  "type": "module",
   "scripts": {
-    "build": "esbuild server.ts --bundle --platform=node --target=node22  --external:*.node --outfile=server.js",
-    "build:test": "esbuild server.ts --watch --bundle --platform=node --target=node22  --external:*.node --outfile=server.js",
-    "dev": "tsx .",
-    "dev:test": "cross-env PORT=4321 tsx .",
-    "start": "node server.js"
+    "dev": "cross-env PORT=4321 tsx .",
+    "start": "node --experimental-transform-types ."
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.701.0",
