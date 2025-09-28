@@ -1,5 +1,5 @@
 import untildify from "untildify";
-import { getEnvironmentVariables } from "@s3-smart-sync/shared/getEnvironmentVariables.js";
+import { getEnvironmentVariables } from "@s3-smart-sync/shared/getEnvironmentVariables.ts";
 
 export const IS_CLI = process.argv.includes("cli");
 export const IS_PKG = Boolean(process.pkg);

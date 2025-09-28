@@ -17,3 +17,4 @@ dist
 
 **/*playground.*
 client/tests/test-client*
+rules.md

@@ -7,7 +7,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
-import { logger } from "@s3-smart-sync/shared/logger.js";
+import { logger } from "@s3-smart-sync/shared/logger.ts";
 import { spawn } from "child_process";
 import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path, { join } from "node:path";
@@ -16,7 +16,7 @@ import {
   AWS_REGION,
   S3_BUCKET,
   SECRET_KEY,
-} from "../src/consts.js";
+} from "../src/consts.ts";
 
 const SERVER_URL = process.env["WEBSOCKET_URL"]!.replace("ws", "http");
 
@@ -32,13 +32,18 @@ const s3Client = new S3Client({
   },
 });
 
-export async function cleanupLocalDirectories() {
-  const testClientDirectories = (await readdir(__dirname)).filter((file) =>
+export async function cleanupLocalDirectories(
+  baseDir: string = import.meta.dirname,
+) {
+  const testClientDirectories = (await readdir(baseDir)).filter((file) =>
     file.startsWith("test-client-"),
   );
   await Promise.all(
     testClientDirectories.map((directory) =>
-      rm(join(__dirname, directory), { recursive: true, force: true }),
+      rm(join(baseDir, directory), {
+        recursive: true,
+        force: true,
+      }),
     ),
   );
 }
@@ -73,7 +78,7 @@ export async function createClientDirectories<T extends readonly number[]>(
   return Object.fromEntries(
     await Promise.all(
       ids.map(async (id) => {
-        const clientDirectory = join(__dirname, `test-client-${id}`);
+        const clientDirectory = join(import.meta.dirname, `test-client-${id}`);
         await mkdir(clientDirectory, { recursive: true });
         return [id, clientDirectory] as const;
       }),
@@ -92,7 +97,7 @@ export async function createDirectory(id: number, key: `${string}/`) {
  * Includes sending SNS message
  */
 export async function createFile(id: number, key: string, content: string) {
-  const clientDirectory = join(__dirname, `test-client-${id}`);
+  const clientDirectory = join(import.meta.dirname, `test-client-${id}`);
   if (key.endsWith("/")) {
     await mkdir(join(clientDirectory, key), { recursive: true });
   } else {
@@ -193,11 +198,11 @@ export async function mockSnsMessage(key: string, operation: "put" | "delete") {
 export async function startClients(ids: readonly number[]) {
   await Promise.all(
     ids.map(async (id) => {
-      const clientDirectory = join(__dirname, `test-client-${id}`);
+      const clientDirectory = join(import.meta.dirname, `test-client-${id}`);
 
       const clientProcess = spawn(
         "node",
-        [path.join(__dirname, "../dist/index.cjs"), "cli"],
+        [path.join(import.meta.dirname, "../dist/index.cjs"), "cli"],
         {
           stdio: ["ignore", "pipe", "pipe"],
           env: { ...process.env, LOCAL_DIR: clientDirectory },
@@ -244,7 +249,7 @@ export async function startClients(ids: readonly number[]) {
 }
 
 export async function startServer() {
-  const serverPath = path.join(__dirname, "../../server");
+  const serverPath = path.join(import.meta.dirname, "../../server");
   serverProcess = spawn(
     "node",
     ["--experimental-transform-types", serverPath],
@@ -317,7 +322,10 @@ export async function waitUntil(
 export async function waitForEmptyDirectories() {
   await waitUntil(async () => {
     for (const id of Object.keys(clients)) {
-      if ((await readdir(join(__dirname, `test-client-${id}`))).length > 0) {
+      if (
+        (await readdir(join(import.meta.dirname, `test-client-${id}`))).length >
+        0
+      ) {
         return false;
       }
     }
@@ -328,9 +336,8 @@ export async function waitForEmptyDirectories() {
 
 export async function withTimeout<T>(
   promise: Promise<T>,
-  ms?: number,
+  timeout = 1000,
 ): Promise<T> {
-  const timeout = ms || 1000;
   const timeoutError = new Error(`Operation timed out after ${timeout} ms`);
   return await Promise.race([
     promise,
