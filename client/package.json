@@ -38,7 +38,7 @@
     "@types/ws": "^8.18.1",
     "@yao-pkg/pkg": "^6.7.0",
     "create-nodew-exe": "^2.1.0",
-    "esbuild": "^0.24.2",
+    "esbuild": "^0.25.0",
     "exe-edit": "^0.1.1",
     "rimraf": "^6.0.1"
   }
