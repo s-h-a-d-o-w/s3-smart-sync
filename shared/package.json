@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "winston": "^3.17.0",
-    "winax": "^3.6.1"
+    "winax": "^3.6.2",
+    "winston": "^3.17.0"
   }
 }
