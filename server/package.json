@@ -24,6 +24,6 @@
     "@types/sns-validator": "^0.3.3",
     "@types/ws": "^8.18.1",
     "cross-env": "^7.0.3",
-    "esbuild": "^0.24.2"
+    "esbuild": "^0.25.0"
   }
 }
