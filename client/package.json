@@ -4,8 +4,8 @@
   "main": "./src/index.ts",
   "type": "module",
   "scripts": {
-    "package": "rimraf dist && pnpm build && copy-winax.bat && pnpm package:pkg && timeout 5 && pnpm silenceexe && pnpm changeicon && wsl ./package-win.sh",
-    "package:debug": "rimraf dist && pnpm build && copy-winax.bat && wsl ./package-win-debug.sh",
+    "package": "rimraf dist && pnpm build && pnpm package:pkg && timeout 5 && pnpm silenceexe && pnpm changeicon && wsl ./package-win.sh",
+    "package:debug": "rimraf dist && pnpm build && wsl ./package-win-debug.sh",
     "package:linux": "rimraf dist && pnpm build:linux && pnpm package:pkg:linux && ./package-linux.sh",
     "package:sea": "package-sea.bat",
     "package:pkg": "pkg -t node22-win-x64 dist/index.cjs -o s3-smart-sync.exe",
@@ -27,7 +27,7 @@
     "chokidar": "^5.0.0",
     "dotenv": "^17.4.2",
     "lodash-es": "^4.18.1",
-    "node-tray": "^2.0.1",
+    "node-tray": "^2.0.3",
     "open": "^11.0.0",
     "untildify": "^5.0.0",
     "ws": "^8.21.0"

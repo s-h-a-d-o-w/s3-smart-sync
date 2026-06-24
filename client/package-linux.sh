@@ -6,7 +6,8 @@ rm *.tar.gz || true
 version=$(jq -r '.version' ./package.json)
 archive_name="s3-smart-sync-${version}-linux-x64"
 
-mkdir $archive_name
+mv dist $archive_name
+rm $archive_name/index.cjs
 mv s3-smart-sync $archive_name/
 cp INSTRUCTIONS.txt $archive_name/INSTRUCTIONS.txt
 cp -r assets $archive_name/assets

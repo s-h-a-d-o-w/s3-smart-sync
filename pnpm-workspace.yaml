@@ -2,3 +2,10 @@ packages:
   - 'server'
   - 'client'
   - 'shared'
+allowBuilds:
+  esbuild: true
+  node-tray: true
+minimumReleaseAgeExclude:
+  - node-tray@2.0.3
+overrides:
+  winreg: "1.2.5"
