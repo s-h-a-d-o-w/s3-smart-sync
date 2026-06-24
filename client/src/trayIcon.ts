@@ -15,11 +15,13 @@ import {
   updateTrayItem,
 } from "./trayWrapper.ts";
 
-export enum TrayIconState {
-  Idle,
-  Busy,
-  Disconnected,
-}
+export const TrayIconState = {
+  Busy: "busy",
+  Disconnected: "disconnected",
+  Idle: "idle",
+} as const;
+export type TrayIconState =
+  (typeof TrayIconState)[keyof typeof TrayIconState];
 
 let currentState: TrayIconState = TrayIconState.Disconnected;
 

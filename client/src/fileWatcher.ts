@@ -5,10 +5,12 @@ import { LOCAL_DIR } from "./consts.ts";
 import path from "node:path";
 
 type LocalToRemoteOperation = (localPath: string) => void;
-export enum FileOperationType {
-  Remove,
-  Sync,
-}
+export const FileOperationType = {
+  Remove: "remove",
+  Sync: "sync",
+} as const;
+export type FileOperationType =
+  (typeof FileOperationType)[keyof typeof FileOperationType];
 
 export const UNIGNORE_DURATION = 200; // short because it only has to cover: end of operation -> file watcher trigger -> ignore that call
 export const WATCHER_DEBOUNCE_DURATION = 500;
