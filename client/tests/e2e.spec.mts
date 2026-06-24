@@ -1,10 +1,10 @@
-import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
+import { fileExists } from "@s3-smart-sync/shared/fileExists.ts";
 import { readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
   UNIGNORE_DURATION,
   WATCHER_DEBOUNCE_DURATION,
-} from "../src/fileWatcher.js";
+} from "../src/fileWatcher.ts";
 import {
   cleanupLocalDirectories,
   cleanupS3,
@@ -22,7 +22,7 @@ import {
   upload,
   waitUntil,
   withTimeout,
-} from "./utilities.js";
+} from "./utilities.ts";
 
 const clientIds = [0, 1] as const;
 let clientDirectories: Record<number, string>;

@@ -1,19 +1,19 @@
-import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
-import { getLogLevel, logger } from "@s3-smart-sync/shared/logger.js";
+import { fileExists } from "@s3-smart-sync/shared/fileExists.ts";
+import { getLogLevel, logger } from "@s3-smart-sync/shared/logger.ts";
 import AutoLaunch from "auto-launch";
-import debounce from "lodash/debounce.js";
+import { debounce } from "lodash-es";
 import { writeFile } from "node:fs/promises";
 import { basename, dirname } from "node:path";
 import open from "open";
 import packageJson from "../package.json" with { type: "json" };
-import { IS_WINDOWS, RELEASE_URL } from "./consts.js";
-import { shutdown } from "./index.js";
+import { IS_WINDOWS, RELEASE_URL } from "./consts.ts";
+import { shutdown } from "./index.ts";
 import {
   createTrayIcon,
   type TrayItem,
   updateTrayIconImage,
   updateTrayItem,
-} from "./trayWrapper.js";
+} from "./trayWrapper.ts";
 
 export enum TrayIconState {
   Idle,

@@ -7,7 +7,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
-import { logger } from "@s3-smart-sync/shared/logger.js";
+import { logger } from "@s3-smart-sync/shared/logger.ts";
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, rm, stat, utimes } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
@@ -18,8 +18,8 @@ import {
   LOCAL_DIR,
   S3_BUCKET,
   SECRET_KEY,
-} from "./consts.js";
-import { FileOperationType, ignore, unignore } from "./fileWatcher.js";
+} from "./consts.ts";
+import { FileOperationType, ignore, unignore } from "./fileWatcher.ts";
 
 export const s3Client = new S3Client({
   region: AWS_REGION,

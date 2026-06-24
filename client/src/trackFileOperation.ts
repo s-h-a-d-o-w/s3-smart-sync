@@ -1,5 +1,5 @@
-import { logger } from "@s3-smart-sync/shared/logger.js";
-import { destroyTrayIcon } from "./trayWrapper.js";
+import { logger } from "@s3-smart-sync/shared/logger.ts";
+import { destroyTrayIcon } from "./trayWrapper.ts";
 
 const MAX_NUMBER_OF_OPERATIONS = 10;
 const LONG_OBSERVATION_DURATION = 10000;

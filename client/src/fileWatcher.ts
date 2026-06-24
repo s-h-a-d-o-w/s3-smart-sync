@@ -1,7 +1,7 @@
 import chokidar, { FSWatcher } from "chokidar";
-import debounce from "lodash/debounce.js";
-import { logger } from "@s3-smart-sync/shared/logger.js";
-import { LOCAL_DIR } from "./consts.js";
+import { debounce } from "lodash-es";
+import { logger } from "@s3-smart-sync/shared/logger.ts";
+import { LOCAL_DIR } from "./consts.ts";
 import path from "node:path";
 
 type LocalToRemoteOperation = (localPath: string) => void;

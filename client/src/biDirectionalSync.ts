@@ -1,8 +1,8 @@
 import { statSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { logger } from "@s3-smart-sync/shared/logger.js";
-import { LOCAL_DIR, S3_BUCKET } from "./consts.js";
+import { logger } from "@s3-smart-sync/shared/logger.ts";
+import { LOCAL_DIR, S3_BUCKET } from "./consts.ts";
 import {
   convertAbsolutePathToKey,
   deleteObject,
@@ -10,8 +10,8 @@ import {
   listS3Files,
   s3Client,
   upload,
-} from "./s3Operations.js";
-import { destroyTrayIcon } from "./trayWrapper.js";
+} from "./s3Operations.ts";
+import { destroyTrayIcon } from "./trayWrapper.ts";
 import { type _Object, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
 async function listLocalFiles(dir: string) {

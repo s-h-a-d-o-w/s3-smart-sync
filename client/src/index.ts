@@ -1,10 +1,10 @@
 import "dotenv/config";
-import "./globalErrorHandling.js";
+import "./globalErrorHandling.ts";
 
 import { mkdir, rm, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { logger } from "@s3-smart-sync/shared/logger.js";
-import { LOCAL_DIR, IS_CLI, RELEASE_URL } from "./consts.js";
+import { logger } from "@s3-smart-sync/shared/logger.ts";
+import { LOCAL_DIR, IS_CLI, RELEASE_URL } from "./consts.ts";
 import {
   convertAbsolutePathToKey,
   deleteObject,
@@ -12,28 +12,28 @@ import {
   getLastModified,
   upload,
   upToDate,
-} from "./s3Operations.js";
+} from "./s3Operations.ts";
 import {
   cleanupFileWatcher,
   FileOperationType,
   ignore,
   setUpFileWatcher,
   unignore,
-} from "./fileWatcher.js";
-import { cleanupWebsocket, setUpWebsocket } from "./setUpWebsocket.js";
+} from "./fileWatcher.ts";
+import { cleanupWebsocket, setUpWebsocket } from "./setUpWebsocket.ts";
 import {
   cleanupFileOperationsTimers,
   trackFileOperation,
-} from "./trackFileOperation.js";
+} from "./trackFileOperation.ts";
 import {
   changeTrayIconState,
   setUpTrayIcon,
   TrayIconState,
-} from "./trayIcon.js";
-import { fileExists } from "@s3-smart-sync/shared/fileExists.js";
-import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.js";
-import { destroyTrayIcon } from "./trayWrapper.js";
-import { getUpdateVersion } from "./getUpdateVersion.js";
+} from "./trayIcon.ts";
+import { fileExists } from "@s3-smart-sync/shared/fileExists.ts";
+import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.ts";
+import { destroyTrayIcon } from "./trayWrapper.ts";
+import { getUpdateVersion } from "./getUpdateVersion.ts";
 
 export async function shutdown() {
   logger.info("Shutting down...");

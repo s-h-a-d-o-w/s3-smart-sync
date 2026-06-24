@@ -1,4 +1,4 @@
-import { logger } from "@s3-smart-sync/shared/logger.js";
+import { logger } from "@s3-smart-sync/shared/logger.ts";
 import packageJson from "../package.json" with { type: "json" };
 
 const GITHUB_API_URL =

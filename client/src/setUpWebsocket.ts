@@ -1,17 +1,17 @@
 import type { S3Event, SNSMessage } from "aws-lambda";
 import WebSocket from "ws";
-import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.js";
-import { logger } from "@s3-smart-sync/shared/logger.js";
-import { biDirectionalSync } from "./biDirectionalSync.js";
-import { RECONNECT_DELAY, WEBSOCKET_TOKEN, WEBSOCKET_URL } from "./consts.js";
+import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.ts";
+import { logger } from "@s3-smart-sync/shared/logger.ts";
+import { biDirectionalSync } from "./biDirectionalSync.ts";
+import { RECONNECT_DELAY, WEBSOCKET_TOKEN, WEBSOCKET_URL } from "./consts.ts";
 import {
   resetIgnoreMaps,
   resumeFileWatcher,
   suspendFileWatcher,
-} from "./fileWatcher.js";
-import { changeTrayIconState, TrayIconState } from "./trayIcon.js";
-import { updateTrayTooltip } from "./trayWrapper.js";
-import { getHeartbeatInterval } from "@s3-smart-sync/shared/getHeartbeatInterval.js";
+} from "./fileWatcher.ts";
+import { changeTrayIconState, TrayIconState } from "./trayIcon.ts";
+import { updateTrayTooltip } from "./trayWrapper.ts";
+import { getHeartbeatInterval } from "@s3-smart-sync/shared/getHeartbeatInterval.ts";
 
 type RemoteToLocalOperation = (key: string) => void;
 
