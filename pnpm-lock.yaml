@@ -81,8 +81,8 @@ importers:
         specifier: ^4.18.1
         version: 4.18.1
       node-tray:
-        specifier: ^2.0.4
-        version: 2.0.4
+        specifier: ^2.0.5
+        version: 2.0.5
       open:
         specifier: ^11.0.0
         version: 11.0.0
@@ -2177,8 +2177,8 @@ packages:
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
 
-  node-tray@2.0.4:
-    resolution: {integrity: sha512-2IpHYKPKWx38kt7QBsZXaP/d3G8XIjOxp0jz4jptpMR9xLtZ+Bcmoptb5jcTM9Elw3ZUe1Ru1OAa+fTs2lfr4A==}
+  node-tray@2.0.5:
+    resolution: {integrity: sha512-bqj36hiCL/wRufghEyvggKOtE+RQGFJGBJUHbi333s/TbwanTazqC8TeJ5sxnd+fXg/znYzED5mOogH5KJjr3w==}
 
   nopt@10.0.1:
     resolution: {integrity: sha512-df3sBr/6ax9hSGuC3CspvLlbnX8cP5L5nZwXF8cGN8l0zSWR6BvzmQ6jPUKjvo6+/xdpkNvEcucBNUdBeeV13g==}
@@ -4835,7 +4835,7 @@ snapshots:
 
   node-int64@0.4.0: {}
 
-  node-tray@2.0.4:
+  node-tray@2.0.5:
     dependencies:
       bindings: 1.5.0
       file-type: 19.6.0
