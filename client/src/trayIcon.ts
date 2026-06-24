@@ -25,6 +25,9 @@ export type TrayIconState =
 
 let currentState: TrayIconState = TrayIconState.Disconnected;
 
+const ICON_EXTENSION = IS_WINDOWS ? ".ico" : ".png";
+console.log("ICON_EXTENSION", ICON_EXTENSION);
+
 const autoLaunchTarget = IS_WINDOWS
   ? dirname(process.execPath) + "\\s3-smart-sync-autolaunch.bat"
   : process.execPath;
@@ -34,7 +37,7 @@ const autoLaunch = new AutoLaunch({
 });
 
 function changeToIdle() {
-  updateTrayIconImage("./assets/icon.ico");
+  updateTrayIconImage("./assets/icon" + ICON_EXTENSION);
   currentState = TrayIconState.Idle;
 }
 // Changing to idle is debounced because while we want to react quickly when it comes to switching to either busy or disconnected, when e.g. copying many files, there are many attempts to switch it back to idle, making it flicker back and forth, consuming unnecessary resources and being visually distracting.
@@ -49,9 +52,9 @@ export function changeTrayIconState(trayIconState: TrayIconState) {
     debouncedChangeToIdle();
     return;
   } else if (trayIconState === TrayIconState.Busy) {
-    updateTrayIconImage("./assets/icon_busy.ico");
+    updateTrayIconImage("./assets/icon_busy" + ICON_EXTENSION);
   } else if (trayIconState === TrayIconState.Disconnected) {
-    updateTrayIconImage("./assets/icon_disconnected.ico");
+    updateTrayIconImage("./assets/icon_disconnected" + ICON_EXTENSION);
   }
 
   currentState = trayIconState;
@@ -120,7 +123,7 @@ export async function setUpTrayIcon(updateVersion?: string) {
   );
 
   await createTrayIcon({
-    icon: "./assets/icon_disconnected.ico",
+    icon: "./assets/icon_disconnected" + ICON_EXTENSION,
     tooltip: "S3 Smart Sync (Disconnected)",
     items,
   });

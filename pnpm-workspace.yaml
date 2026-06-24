@@ -6,6 +6,6 @@ allowBuilds:
   esbuild: true
   node-tray: true
 minimumReleaseAgeExclude:
-  - node-tray@2.0.3
+  - node-tray@2.0.3 || 2.0.4
 overrides:
   winreg: "1.2.5"
