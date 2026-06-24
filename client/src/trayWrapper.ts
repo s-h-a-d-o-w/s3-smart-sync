@@ -1,4 +1,4 @@
-import originalTray from "node-tray";
+import * as originalTray from "node-tray";
 import { IS_CLI } from "./consts.js";
 
 type TrayType = typeof originalTray;

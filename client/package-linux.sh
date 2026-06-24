@@ -3,17 +3,14 @@ set -ex
 
 rm *.tar.gz || true
 
-mv s3-smart-sync dist/
-cp INSTRUCTIONS.txt dist/INSTRUCTIONS.txt
-cp -r assets dist/assets
-cp ../.env.schema dist/.env
+version=$(jq -r '.version' ./package.json)
+archive_name="s3-smart-sync-${version}-linux-x64"
 
-cd dist
-rm index.cjs
-version=$(jq -r '.version' ../package.json)
-files=$(find . -mindepth 1 -maxdepth 1)
-tar -czvf "s3-smart-sync-${version}-linux-x64.tar.gz" $files
-mv s3-smart-sync-*.tar.gz ../
+mkdir $archive_name
+mv s3-smart-sync $archive_name/
+cp INSTRUCTIONS.txt $archive_name/INSTRUCTIONS.txt
+cp -r assets $archive_name/assets
+cp ../.env.schema $archive_name/.env
 
-cd ..
-rm -rf dist
+tar -czvf "$archive_name.tar.gz" $archive_name
+rm -rf $archive_name

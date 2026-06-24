@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "types": [
       "vitest/globals"
     ],
@@ -100,7 +101,6 @@
     /* Completeness */
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true, /* Skip type checking all .d.ts files. */
-    "allowImportingTsExtensions": true
   },
   "exclude": ["node_modules", "client/dist"]
 }

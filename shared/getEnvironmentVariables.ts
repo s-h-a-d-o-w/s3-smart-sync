@@ -1,3 +1,5 @@
+import { showMessageBox } from "./showMessageBox.ts";
+
 // Use for required variables only!
 export function getEnvironmentVariables<T extends string>(...names: T[]) {
   const result = Object.fromEntries(
@@ -13,21 +15,8 @@ export function getEnvironmentVariables<T extends string>(...names: T[]) {
       process.pkg &&
       !process.argv.includes("cli")
     ) {
-      import("winax")
-        .then((winax) => {
-          const wsh = new winax.Object("WScript.Shell");
-          wsh["Popup"](
-            "Missing environment variable(s): " + missing.join(", "),
-            undefined,
-            "Critical error",
-            48,
-          );
-
-          process.exit(1);
-        })
-        .catch((error) => {
-          throw new Error(String(error));
-        });
+      showMessageBox("Missing environment variable(s): " + missing.join(", "), "error");
+      process.exit(1);
     }
 
     throw new Error("Missing environment variable(s): " + missing.join(", "));
