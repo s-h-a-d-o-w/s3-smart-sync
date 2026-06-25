@@ -18,10 +18,7 @@ cp ../.env.schema dist/.env
 version=$(jq -r '.version' ./package.json)
 archive_name="s3-smart-sync-${version}-linux-x64"
 if [[ "$OS" == "Windows_NT" ]]; then
-  cd dist
-  zip -r "s3-smart-sync-${version}-win-x64.zip" .
-  mv s3-smart-sync-*.zip ../
-  cd ..
+  powershell.exe -NoProfile -Command "Compress-Archive -Path '.\dist\*' -DestinationPath 's3-smart-sync-${version}-win-x64.zip' -Force"
   rm -rf dist
 else
   mv dist $archive_name
