@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "benchmark": "node ./tests/benchmark.ts",
-    "build": "rimraf dist && node esbuild.mts && bash ./copy-addons.sh && bash ./package.sh",
+    "build": "rimraf dist && node esbuild.mts && bash ./copy-addons.sh",
     "dev": "node . debug",
-    "dev:cli": "node . cli"
+    "dev:cli": "node . cli",
+    "package": "pnpm build && bash ./package.sh"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.896.0",
