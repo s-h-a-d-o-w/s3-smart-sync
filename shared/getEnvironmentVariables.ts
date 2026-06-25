@@ -1,7 +1,7 @@
 import { showMessageBox } from "./showMessageBox.ts";
 
 // Use for required variables only!
-export function getEnvironmentVariables<T extends string>(...names: T[]) {
+export async function getEnvironmentVariables<T extends string>(...names: T[]) {
   const result = Object.fromEntries(
     Object.entries(process.env).filter(([name]) => names.includes(name as T)),
   );
@@ -15,7 +15,10 @@ export function getEnvironmentVariables<T extends string>(...names: T[]) {
       process.pkg &&
       !process.argv.includes("cli")
     ) {
-      showMessageBox("Missing environment variable(s): " + missing.join(", "), "error");
+      await showMessageBox(
+        "Missing environment variable(s): " + missing.join(", "),
+        "error",
+      );
       process.exit(1);
     }
 

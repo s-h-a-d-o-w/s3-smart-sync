@@ -13,7 +13,7 @@ export const RECONNECT_DELAY = parseInt(
   10,
 );
 
-const { LOCAL_DIR: RAW_LOCAL_DIR } = getEnvironmentVariables("LOCAL_DIR");
+const { LOCAL_DIR: RAW_LOCAL_DIR } = await getEnvironmentVariables("LOCAL_DIR");
 export const LOCAL_DIR = untildify(RAW_LOCAL_DIR);
 
 export const {
@@ -23,7 +23,7 @@ export const {
   SECRET_KEY,
   WEBSOCKET_URL,
   WEBSOCKET_TOKEN,
-} = getEnvironmentVariables(
+} = await getEnvironmentVariables(
   "ACCESS_KEY",
   "AWS_REGION",
   "S3_BUCKET",

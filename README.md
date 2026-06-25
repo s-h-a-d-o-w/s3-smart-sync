@@ -12,12 +12,12 @@ If you want the tray icon to look prettier, you have to manually enable the comp
 
 ## Compatibility
 
-**If you can test and confirm any of the `?`, please let me know!** (Even if it doesn't work. *Especially* if it doesn't work... 😄)
+**If you can test and confirm any of the `?`, please let me know!** (Even if it doesn't work. _Especially_ if it doesn't work... 😄)
 
 |         | "UI" (Tray icon) | CLI |
-|---------|------------------|-----|
-| Windows | ✅                | ✅   |
-| Linux   | ?                | ✅   |
+| ------- | ---------------- | --- |
+| Windows | ✅               | ✅  |
+| Linux   | ?                | ✅  |
 | Mac     | ?                | ?   |
 
 ## How to use (server)
@@ -41,6 +41,7 @@ Logs to console instead of files.
 - To build with `node:sea`, you have to install [the signing feature of the Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) and possibly change the path in `build-sea.bat`.
 - Tray icon DPI nonsense: I tried to attach a [manifest](https://learn.microsoft.com/en-us/windows/win32/hidpi/setting-the-default-dpi-awareness-for-a-process) to both `pkg` and `node:sea` .exes using both `mt` and `rcedit`. The `pkg` exe shrinks by 4 MB and doesn't work any more. With the `node:sea` exe, `rcedit` freezes. `mt` works but would require a environment variable override: "Node.js is only supported on Windows 8.1, Windows Server 2012 R2, or higher. Setting the NODE_SKIP_PLATFORM_CHECK environment variable to 1 skips this check, ...". Since it's not possible to bake environment variables into the .exe with `node:sea`, this is obviously not acceptable either. The only thing I can think of to resolve this would be to create a non-node wrapper that runs the .exe. Or maybe `bun` or `deno` become a viable alternative at some point (As of October 2024, I don't consider either of them anywhere near production ready. `bun` can't handle windows paths, at least in with projects like this one. `deno` still [doesn't clean up unneeded npm packages](https://github.com/denoland/deno/issues/21261).)
 - Multiple strategies are needed to prevent infinite loops:
+
 1. Whenever we do something on S3, it triggers SNS and we would repeat the same thing locally that we just did on S3, which would result in: Syncing to S3 => getting SNS => Syncing to S3 => infinite loop. To avoid this, the last modified date is synced after uploading/downloading and checked before uploading/downloading.
 2. Whenever a file is manipulated locally, it is added to `ignoreMaps`. Which makes it so that when the file watcher triggers because of what the client does rather than what the user does, that trigger is ignored.
 3. Allowing frequent operations on the same file (which Cryptomator does), is achieved using the following: All local operations are debounced. If even with debouncing, the same file keeps changing without regularly changing in size, the client exits at some point because then it's probably a bug.

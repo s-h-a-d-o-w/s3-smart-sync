@@ -22,7 +22,7 @@ interface ExtendedWebSocket extends WebSocket {
 
 const HEARTBEAT_INTERVAL = getHeartbeatInterval();
 const { AWS_REGION, ACCESS_KEY, SECRET_KEY, WEBSOCKET_TOKEN } =
-  getEnvironmentVariables(
+  await getEnvironmentVariables(
     "AWS_REGION",
     "ACCESS_KEY",
     "SECRET_KEY",

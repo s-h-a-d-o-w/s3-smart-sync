@@ -1,7 +1,7 @@
 packages:
-  - 'server'
-  - 'client'
-  - 'shared'
+  - "server"
+  - "client"
+  - "shared"
 allowBuilds:
   esbuild: true
   node-tray: true

@@ -32,7 +32,10 @@ function showMessageBoxLinux(message: string, kind: "error" | "info") {
   );
 }
 
-export function showMessageBox(message: string, kind: "error" | "info" = "info") {
+export function showMessageBox(
+  message: string,
+  kind: "error" | "info" = "info",
+) {
   if (process.platform === "win32") {
     return showMessageBoxWindows(message, kind);
   }

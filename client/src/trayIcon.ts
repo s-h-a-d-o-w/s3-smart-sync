@@ -20,8 +20,7 @@ export const TrayIconState = {
   Disconnected: "disconnected",
   Idle: "idle",
 } as const;
-export type TrayIconState =
-  (typeof TrayIconState)[keyof typeof TrayIconState];
+export type TrayIconState = (typeof TrayIconState)[keyof typeof TrayIconState];
 
 let currentState: TrayIconState = TrayIconState.Disconnected;
 
@@ -54,7 +53,9 @@ export function changeTrayIconState(trayIconState: TrayIconState) {
   } else if (trayIconState === TrayIconState.Busy) {
     updateTrayIconImage(path.resolve("./assets/icon_busy" + ICON_EXTENSION));
   } else if (trayIconState === TrayIconState.Disconnected) {
-    updateTrayIconImage(path.resolve("./assets/icon_disconnected" + ICON_EXTENSION));
+    updateTrayIconImage(
+      path.resolve("./assets/icon_disconnected" + ICON_EXTENSION),
+    );
   }
 
   currentState = trayIconState;
