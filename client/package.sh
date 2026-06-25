@@ -5,7 +5,7 @@ rm *.tar.gz || true
 
 node -e "const fs = require('fs'); const path = require('path'); const ext = process.platform === 'win32' ? '.exe' : ''; const target = path.join('dist', 'node' + ext); fs.copyFileSync(process.execPath, target); fs.chmodSync(target, 0o755);"
 if [[ "$OS" == "Windows_NT" ]]; then
-  cmd.exe /c build-bootstrap.bat
+  cmd.exe //c build-bootstrap.bat
 else
   printf '%s\n' '#!/bin/sh' 'cd "$(dirname "$0")"' 'NODE_ENV=production exec ./node index.js "$@"' > dist/s3-smart-sync
   chmod +x dist/s3-smart-sync
