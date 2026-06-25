@@ -25,7 +25,6 @@ export type TrayIconState = (typeof TrayIconState)[keyof typeof TrayIconState];
 let currentState: TrayIconState = TrayIconState.Disconnected;
 
 const ICON_EXTENSION = IS_WINDOWS ? ".ico" : ".png";
-console.log("ICON_EXTENSION", ICON_EXTENSION);
 
 const autoLaunchTarget = IS_WINDOWS
   ? dirname(process.execPath) + "\\s3-smart-sync-autolaunch.bat"

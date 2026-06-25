@@ -13,17 +13,20 @@ const failOnWarningPlugin: Plugin = {
 
 await build({
   banner: {
-    js: `import_meta_url = require("url").pathToFileURL(__filename).toString();`,
-  },
-  define: {
-    "import.meta.url": "import_meta_url",
+    js: `
+    import { createRequire } from 'node:module';
+    import { dirname } from "node:path";
+    const require = createRequire(import.meta.url);
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+  `,
   },
   entryPoints: ["./src/index.ts"],
   bundle: true,
-  format: "cjs",
+  format: "esm",
   platform: "node",
-  target: "node22",
+  target: "node24",
   external: ["*.node"],
-  outfile: "./dist/index.cjs",
+  outfile: "./dist/index.js",
   plugins: [failOnWarningPlugin],
 });

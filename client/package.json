@@ -4,20 +4,10 @@
   "main": "./src/index.ts",
   "type": "module",
   "scripts": {
-    "package": "rimraf dist && pnpm build && pnpm package:pkg && timeout 5 && pnpm silenceexe && pnpm changeicon && wsl ./package-win.sh",
-    "package:debug": "rimraf dist && pnpm build && wsl ./package-win-debug.sh",
-    "package:linux": "rimraf dist && pnpm build:linux && pnpm package:pkg:linux && ./package-linux.sh",
-    "package:sea": "package-sea.bat",
-    "package:pkg": "pkg -t node24-win-x64 dist/index.cjs -o s3-smart-sync.exe",
-    "package:pkg:linux": "pkg -t node24-linux-x64 dist/index.cjs -o s3-smart-sync",
     "benchmark": "node ./tests/benchmark.ts",
-    "build": "rimraf dist && node esbuild.mts && wsl ./copy-addons.sh",
-    "build:linux": "rimraf dist && node esbuild.mts && ./copy-addons.sh",
-    "changeicon": "exe-edit s3-smart-sync.exe s3-smart-sync.exe --icon ./assets/icon.ico",
+    "build": "rimraf dist && node esbuild.mts && bash ./copy-addons.sh && bash ./package.sh",
     "dev": "node . debug",
-    "dev:cli": "node . cli",
-    "silenceexe": "create-nodew-exe s3-smart-sync.exe s3-smart-sync.exe",
-    "playground": "node playground.ts"
+    "dev:cli": "node . cli"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.896.0",
@@ -37,7 +27,7 @@
     "@types/aws-lambda": "^8.10.152",
     "@types/lodash-es": "^4.17.12",
     "@types/ws": "^8.18.1",
-    "@yao-pkg/pkg": "^6.7.0",
+    "@yao-pkg/pkg": "^6.20.0",
     "create-nodew-exe": "^2.1.0",
     "esbuild": "^0.24.2",
     "exe-edit": "^0.1.1",

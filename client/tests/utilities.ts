@@ -202,7 +202,7 @@ export async function startClients(ids: readonly number[]) {
 
       const clientProcess = spawn(
         "node",
-        [path.join(import.meta.dirname, "../dist/index.cjs"), "cli"],
+        [path.join(import.meta.dirname, "../dist/index.js"), "cli"],
         {
           stdio: ["ignore", "pipe", "pipe"],
           env: { ...process.env, LOCAL_DIR: clientDirectory },
