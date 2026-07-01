@@ -1,0 +1,11 @@
+{
+  // https://containers.dev/templates
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24",
+
+  "features": {
+    "ghcr.io/devcontainers-extra/features/apt-packages:1": {
+      "packages": "libgtk-3-dev xorg-dev libayatana-appindicator3-dev"
+    },
+    "ghcr.io/s-h-a-d-o-w/devcontainers-features/js-k8s": {}
+  }
+}
