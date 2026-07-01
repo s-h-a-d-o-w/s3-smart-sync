@@ -26,9 +26,10 @@ let currentState: TrayIconState = TrayIconState.Disconnected;
 
 const ICON_EXTENSION = IS_WINDOWS ? ".ico" : ".png";
 
-const autoLaunchTarget = IS_WINDOWS
-  ? dirname(process.execPath) + "\\s3-smart-sync-autolaunch.bat"
-  : process.execPath;
+const autoLaunchTarget = path.join(
+  dirname(process.execPath),
+  IS_WINDOWS ? "s3-smart-sync-autolaunch.bat" : "s3-smart-sync",
+);
 const autoLaunch = new AutoLaunch({
   name: "S3 Smart Sync",
   path: autoLaunchTarget,
