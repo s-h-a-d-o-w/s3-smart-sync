@@ -15,6 +15,7 @@ import {
   list,
   pause,
   mockSnsMessage,
+  S3_PREFIX,
   startClients,
   startServer,
   stopClients,
@@ -162,7 +163,7 @@ describe("E2E Tests", () => {
     // Client 1 shouldn't do anything after the download has finished. (Which means that the ignore mechanism works with large files.)
     await pause(WATCHER_DEBOUNCE_DURATION * 2);
     expect(clientLogs[1]!.trim().split("\n").at(-1)?.trim()).toMatch(
-      /Downloaded: large-file\.txt$/,
+      /Downloaded: .*large-file\.txt$/,
     );
   }, 20000);
 
@@ -248,6 +249,6 @@ describe("E2E Tests", () => {
 
     const { Contents } = await list("duplicate-file");
     expect(Contents?.length).toBe(1);
-    expect(Contents?.[0]?.Key).toBe("duplicate-file");
+    expect(Contents?.[0]?.Key).toBe(S3_PREFIX + "duplicate-file");
   });
 });

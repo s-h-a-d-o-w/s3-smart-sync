@@ -9,6 +9,7 @@ import {
 import { Upload } from "@aws-sdk/lib-storage";
 import { logger } from "@s3-smart-sync/shared/logger.ts";
 import { spawn } from "child_process";
+import { randomBytes } from "node:crypto";
 import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path, { join } from "node:path";
 import {
@@ -19,6 +20,23 @@ import {
 } from "../src/consts.ts";
 
 const SERVER_URL = process.env["WEBSOCKET_URL"]!.replace("ws", "http");
+
+// Concurrent CI runs share one bucket, so every run gets its own "subdirectory".
+// The clients still use the bucket root, they just sync a directory named after
+// this prefix - which is what puts the prefix in front of all of their keys.
+export const S3_PREFIX = `test-${randomBytes(8).toString("hex")}/`;
+
+function toPrefixedKey(key: string) {
+  return S3_PREFIX + key;
+}
+
+function localDirectory(id: number) {
+  return join(import.meta.dirname, `test-client-${id}`);
+}
+
+function syncDirectory(id: number) {
+  return join(localDirectory(id), S3_PREFIX);
+}
 
 const clients: Record<number, ChildProcess> = {};
 export const clientLogs: Record<number, string> = {};
@@ -54,6 +72,7 @@ export async function cleanupS3() {
     const { Contents } = await s3Client.send(
       new ListObjectsV2Command({
         Bucket: S3_BUCKET,
+        Prefix: S3_PREFIX,
       }),
     );
 
@@ -78,9 +97,9 @@ export async function createClientDirectories<T extends readonly number[]>(
   return Object.fromEntries(
     await Promise.all(
       ids.map(async (id) => {
-        const clientDirectory = join(import.meta.dirname, `test-client-${id}`);
-        await mkdir(clientDirectory, { recursive: true });
-        return [id, clientDirectory] as const;
+        const directory = syncDirectory(id);
+        await mkdir(directory, { recursive: true });
+        return [id, directory] as const;
       }),
     ),
   ) as Record<T[number], string>;
@@ -97,7 +116,7 @@ export async function createDirectory(id: number, key: `${string}/`) {
  * Includes sending SNS message
  */
 export async function createFile(id: number, key: string, content: string) {
-  const clientDirectory = join(import.meta.dirname, `test-client-${id}`);
+  const clientDirectory = syncDirectory(id);
   if (key.endsWith("/")) {
     await mkdir(join(clientDirectory, key), { recursive: true });
   } else {
@@ -110,7 +129,7 @@ export async function createFile(id: number, key: string, content: string) {
     const { Body, LastModified } = await s3Client.send(
       new GetObjectCommand({
         Bucket: S3_BUCKET,
-        Key: key,
+        Key: toPrefixedKey(key),
       }),
     );
     lastModified = LastModified;
@@ -154,7 +173,7 @@ export function list(prefix: string) {
   return s3Client.send(
     new ListObjectsV2Command({
       Bucket: S3_BUCKET,
-      Prefix: prefix,
+      Prefix: toPrefixedKey(prefix),
     }),
   );
 }
@@ -176,7 +195,7 @@ export async function mockSnsMessage(key: string, operation: "put" | "delete") {
             operation === "put" ? "ObjectCreated:Put" : "ObjectRemoved:Delete",
           s3: {
             bucket: { name: S3_BUCKET },
-            object: { key },
+            object: { key: toPrefixedKey(key) },
           },
         },
       ],
@@ -198,7 +217,7 @@ export async function mockSnsMessage(key: string, operation: "put" | "delete") {
 export async function startClients(ids: readonly number[]) {
   await Promise.all(
     ids.map(async (id) => {
-      const clientDirectory = join(import.meta.dirname, `test-client-${id}`);
+      const clientDirectory = localDirectory(id);
 
       const clientProcess = spawn(
         "node",
@@ -285,7 +304,7 @@ export async function upload(key: string, body?: string) {
     client: s3Client,
     params: {
       Bucket: S3_BUCKET,
-      Key: key,
+      Key: toPrefixedKey(key),
       Body: key.endsWith("/") ? "" : body || "",
     },
   }).done();
@@ -322,10 +341,7 @@ export async function waitUntil(
 export async function waitForEmptyDirectories() {
   await waitUntil(async () => {
     for (const id of Object.keys(clients)) {
-      if (
-        (await readdir(join(import.meta.dirname, `test-client-${id}`))).length >
-        0
-      ) {
+      if ((await readdir(syncDirectory(Number(id)))).length > 0) {
         return false;
       }
     }
