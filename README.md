@@ -4,7 +4,7 @@
 
 I'm using this myself 24/7 (used to on Windows, since about July 2026 on Linux - both via tray icon, not CLI), to sync notes and other files between between desktop and tablet. (Using Cryptomator, since I don't trust Amazon. If you use Cryptomator on Windows, note that you "MUST" [switch from WebDAV to WinFsp in the settings](https://github.com/cryptomator/cryptomator/issues/3576#issuecomment-2409007431)!)
 
-**As a general rule - don't change/delete files unless the client is idle (green icon or no log output)!** (It's fine to e.g. drag and drop a ton of files but you will probably run into a problem particularly if you edit the same file repeatedly within a few seconds.)
+**As a general rule - don't change/delete files unless the client is idle (green icon or no log output)!** (It's fine to e.g. drag and drop a ton of files. I've restored backups of thousands before. But you might run into a problem if you e.g. edit the same file repeatedly within a few seconds.)
 
 **Make backups of your data regularly!**
 
