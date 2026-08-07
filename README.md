@@ -15,9 +15,19 @@ I'm using this myself 24/7 (used to on Windows, since about July 2026 on Linux -
 
 ## How to use (client with UI)
 
-- Run the latest release on your client machine(s).
+Just run the latest release on your client machine(s).
 
-Windows only: If you want the tray icon to look prettier, you have to manually enable the compatibility setting -> high DPI -> scaling behavior performed by: application.
+### Linux
+
+For convenience on servers - this downloads and unpacks to `./s3-smart-sync`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/s-h-a-d-o-w/s3-smart-sync/master/install.sh | bash
+```
+
+### Windows
+
+If you want the tray icon to look prettier, you have to manually enable the compatibility setting -> high DPI -> scaling behavior performed by: application.
 
 ## How to use (client with CLI)
 
