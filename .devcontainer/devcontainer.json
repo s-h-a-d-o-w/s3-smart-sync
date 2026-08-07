@@ -6,6 +6,6 @@
     "ghcr.io/devcontainers-extra/features/apt-packages:1": {
       "packages": "libgtk-3-dev xorg-dev libayatana-appindicator3-dev"
     },
-    "ghcr.io/s-h-a-d-o-w/devcontainers-features/js-k8s": {}
+    "ghcr.io/s-h-a-d-o-w/devcontainers-features/js-base": {}
   }
 }
