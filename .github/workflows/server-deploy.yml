@@ -1,9 +1,12 @@
-name: Deployment
+name: Server Deployment
 
 on:
   push:
     branches:
       - master
+    paths:
+      - "server/**"
+      - "shared/**"
 
 jobs:
   build:

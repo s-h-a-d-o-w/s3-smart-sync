@@ -1,0 +1,57 @@
+name: Client Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: win-x64
+            artifact: client/*.zip
+          - os: ubuntu-latest
+            name: linux-x64
+            artifact: client/*.tar.gz
+
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@v2
+      - name: Package client
+        run: pnpm --filter @s3-smart-sync/client package
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: s3-smart-sync-${{ matrix.name }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+
+  release:
+    needs: package
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Create release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          make_latest: true
