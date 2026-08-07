@@ -33,7 +33,7 @@ const originalIt = it;
 globalThis.it = (name: string, fn: () => Promise<void>, timeout?: number) => {
   originalIt(
     name,
-    async function () {
+    async function  it() {
       process.stdout.write(
         `===============================================================================\n`,
       );
@@ -41,7 +41,7 @@ globalThis.it = (name: string, fn: () => Promise<void>, timeout?: number) => {
       process.stdout.write(
         `===============================================================================\n`,
       );
-      return await fn();
+      return  fn();
     },
     timeout,
   );
@@ -120,7 +120,7 @@ describe("E2E Tests", () => {
             );
           }
         } else {
-          const content = await readFile(filePath, "utf-8");
+          const content = await readFile(filePath, "utf8");
           if (content !== expectedContent) {
             throw new Error(
               `Content mismatch for ${filePath}. Expected: ${expectedContent}, Got: ${content}`,
@@ -154,10 +154,10 @@ describe("E2E Tests", () => {
         expect(
           await readFile(
             join(clientDirectories[1]!, "large-file.txt"),
-            "utf-8",
+            "utf8",
           ),
         ).toBe(largeContent),
-      { timeout: 10000 },
+      { timeout: 10_000 },
     );
 
     // Client 1 shouldn't do anything after the download has finished. (Which means that the ignore mechanism works with large files.)
@@ -165,13 +165,13 @@ describe("E2E Tests", () => {
     expect(clientLogs[1]!.trim().split("\n").at(-1)?.trim()).toMatch(
       /Downloaded: .*large-file\.txt$/,
     );
-  }, 20000);
+  }, 20_000);
 
   it("should sync file changes between clients", async () => {
     await createFile(0, "new-file.txt", "New content");
     await waitUntil(async () =>
       expect(
-        await readFile(join(clientDirectories[1]!, "new-file.txt"), "utf-8"),
+        await readFile(join(clientDirectories[1]!, "new-file.txt"), "utf8"),
       ).toBe("New content"),
     );
     await pause(UNIGNORE_DURATION + 10);
@@ -179,7 +179,7 @@ describe("E2E Tests", () => {
     await createFile(1, "new-file.txt", "Changed content");
     await waitUntil(async () =>
       expect(
-        await readFile(join(clientDirectories[0]!, "new-file.txt"), "utf-8"),
+        await readFile(join(clientDirectories[0]!, "new-file.txt"), "utf8"),
       ).toBe("Changed content"),
     );
   });
@@ -229,7 +229,7 @@ describe("E2E Tests", () => {
       expect(
         await readFile(
           join(clientDirectories[1]!, "directory-then-file"),
-          "utf-8",
+          "utf8",
         ),
       ).toBe("now it's a file");
     });
@@ -244,7 +244,7 @@ describe("E2E Tests", () => {
 
     await startClients(clientIds);
     await waitUntil(() =>
-      readFile(join(clientDirectories[0]!, "duplicate-file"), "utf-8"),
+      readFile(join(clientDirectories[0]!, "duplicate-file"), "utf8"),
     );
 
     const { Contents } = await list("duplicate-file");

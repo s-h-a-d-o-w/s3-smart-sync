@@ -69,9 +69,9 @@ async function getMeasurements() {
     // "xlarge.txt": "e".repeat(10 * 1024 * 1024), // 10MB
   };
 
-  const watchPromises = Object.keys(testFiles).map((key) => {
-    return watchForFileEvent(join(clientDirectories[1], key), "add");
-  });
+  const watchPromises = Object.keys(testFiles).map((key) => 
+    watchForFileEvent(join(clientDirectories[1], key), "add")
+  );
 
   let startTime = performance.now();
   await Promise.all(
@@ -79,14 +79,14 @@ async function getMeasurements() {
       createFile(0, key, content),
     ),
   );
-  await withTimeout(Promise.all(watchPromises), 10000);
+  await withTimeout(Promise.all(watchPromises), 10_000);
   let endTime = performance.now();
   const syncTime = endTime - startTime;
 
   // Verify content is correct
   for (const [key, expectedContent] of Object.entries(testFiles)) {
     const filePath = join(clientDirectories[1], key);
-    const content = await readFile(filePath, "utf-8");
+    const content = await readFile(filePath, "utf8");
     if (content !== expectedContent) {
       throw new Error(`Content didn't match for ${key}`);
     }
@@ -103,7 +103,7 @@ async function getMeasurements() {
   startTime = performance.now();
   await rm(join(clientDirectories[0], "small1.txt"));
   await mockSnsMessage("small1.txt", "delete");
-  await withTimeout(watchPromise, 10000);
+  await withTimeout(watchPromise, 10_000);
   endTime = performance.now();
   const deleteTime = endTime - startTime;
 
@@ -122,7 +122,7 @@ try {
     `Total sync time for all files: ${(syncTime / 1000).toFixed(1)}s`,
   );
   console.log(`File deletion sync time: ${(deleteTime / 1000).toFixed(1)}s`);
-} catch (e) {
-  console.error(e);
+} catch (error) {
+  console.error(error);
   await stop();
 }

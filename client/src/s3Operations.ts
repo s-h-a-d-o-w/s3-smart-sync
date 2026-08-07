@@ -11,7 +11,7 @@ import { logger } from "@s3-smart-sync/shared/logger.ts";
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, rm, stat, utimes } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import { pipeline } from "stream/promises";
+import { pipeline } from "node:stream/promises";
 import {
   ACCESS_KEY,
   AWS_REGION,
@@ -49,7 +49,7 @@ export async function convertAbsolutePathToKey(filePath: string) {
       );
       return preliminaryKey + (preliminaryKey.endsWith("/") ? "" : "/");
     }
-  } catch (_) {
+  } catch {
     // empty
   }
 
@@ -100,7 +100,7 @@ export async function download(key: string, localPath: string) {
       await rm(localPath);
       unignore(FileOperationType.Remove, localPath);
     }
-  } catch (_) {
+  } catch {
     // local file doesn't exist yet
   }
 
@@ -139,10 +139,10 @@ export async function download(key: string, localPath: string) {
 
 export async function listS3Files() {
   let continuationToken: string | undefined = undefined;
-  const files: Array<{
+  const files: {
     key: string;
     lastModified: Date;
-  }> = [];
+  }[] = [];
   const filesWithoutLastModified: string[] = [];
 
   do {
@@ -188,7 +188,7 @@ export async function upToDate(key: string) {
   let lastModifiedLocal: Date | undefined;
   try {
     lastModifiedLocal = (await stat(join(LOCAL_DIR, key))).mtime;
-  } catch (_) {
+  } catch {
     // File doesn't exist locally
     return false;
   }

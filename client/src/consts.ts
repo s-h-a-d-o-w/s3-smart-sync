@@ -2,13 +2,12 @@ import untildify from "untildify";
 import { getEnvironmentVariables } from "@s3-smart-sync/shared/getEnvironmentVariables.ts";
 
 export const IS_CLI = process.argv.includes("cli");
-export const IS_PKG = Boolean(process.pkg);
 export const IS_WINDOWS = process.platform === "win32";
 
 export const RELEASE_URL =
   "https://github.com/s-h-a-d-o-w/s3-smart-sync/releases/latest";
 
-export const RECONNECT_DELAY = parseInt(
+export const RECONNECT_DELAY = Number.parseInt(
   process.env["RECONNECT_DELAY"] || "500",
   10,
 );

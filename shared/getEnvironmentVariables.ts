@@ -1,5 +1,3 @@
-import { showMessageBox } from "./showMessageBox.ts";
-
 // Use for required variables only!
 export async function getEnvironmentVariables<T extends string>(...names: T[]) {
   const result = Object.fromEntries(
@@ -10,18 +8,6 @@ export async function getEnvironmentVariables<T extends string>(...names: T[]) {
     (name) => !Object.keys(result).includes(name) || result[name] === "",
   );
   if (missing.length > 0) {
-    if (
-      process.platform === "win32" &&
-      process.pkg &&
-      !process.argv.includes("cli")
-    ) {
-      await showMessageBox(
-        "Missing environment variable(s): " + missing.join(", "),
-        "error",
-      );
-      process.exit(1);
-    }
-
     throw new Error("Missing environment variable(s): " + missing.join(", "));
   }
 

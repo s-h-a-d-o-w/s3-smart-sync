@@ -1,4 +1,4 @@
-import { ChildProcess } from "child_process";
+import { ChildProcess,spawn } from "node:child_process";
 
 import {
   DeleteObjectsCommand,
@@ -8,7 +8,6 @@ import {
 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { logger } from "@s3-smart-sync/shared/logger.ts";
-import { spawn } from "child_process";
 import { randomBytes } from "node:crypto";
 import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path, { join } from "node:path";
@@ -76,7 +75,7 @@ export async function cleanupS3() {
       }),
     );
 
-    if (!Contents?.length) return;
+    if (!Contents?.length) {return;}
 
     await s3Client.send(
       new DeleteObjectsCommand({
@@ -141,12 +140,12 @@ export async function createFile(id: number, key: string, content: string) {
 
   // Wait for modified timestamp syncing
   if (lastModified) {
-    await waitUntil(async () => {
-      return (
+    await waitUntil(async () => 
+      (
         (await stat(join(clientDirectory, key))).mtime.valueOf() ===
         lastModified!.valueOf()
-      );
-    });
+      )
+    );
   } else {
     throw new Error("No last modified info for " + key);
   }
@@ -244,7 +243,7 @@ export async function startClients(ids: readonly number[]) {
           .trim()
           .split("\n")
           .forEach((line) => {
-            process[stream].write(`\x1b[${colorCode}m[${id}]\x1b[0m ${line}\n`);
+            process[stream].write(`\u001B[${colorCode}m[${id}]\u001B[0m ${line}\n`);
             clientLogs[id] += line + "\n";
           });
       }
@@ -255,11 +254,11 @@ export async function startClients(ids: readonly number[]) {
         processBuffer(data, "stderr");
       });
 
-      await waitUntil(() => {
-        return clientLogs[id]
+      await waitUntil(() => 
+        clientLogs[id]
           ?.trim()
-          .endsWith(`Watching for changes in ${clientDirectory}`);
-      });
+          .endsWith(`Watching for changes in ${clientDirectory}`)
+      );
 
       // Despite waiting for the log output, it seems like the client might still not be fully ready. (Flaky tests)
       await pause(200);
@@ -328,7 +327,7 @@ export async function waitUntil(
       }
 
       return;
-    } catch (_) {
+    } catch {
       // continue
     }
 
@@ -355,7 +354,7 @@ export async function withTimeout<T>(
   timeout = 1000,
 ): Promise<T> {
   const timeoutError = new Error(`Operation timed out after ${timeout} ms`);
-  return await Promise.race([
+  return Promise.race([
     promise,
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     new Promise((_, reject) =>

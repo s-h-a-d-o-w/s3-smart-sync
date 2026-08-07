@@ -15,10 +15,10 @@ import { destroyTrayIcon } from "./trayWrapper.ts";
 import { type _Object, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
 async function listLocalFiles(dir: string) {
-  const files: Array<{
+  const files: {
     key: string;
     lastModified: Date;
-  }> = [];
+  }[] = [];
 
   const directoryEntries = await readdir(dir, {
     recursive: true,
@@ -106,11 +106,11 @@ export async function biDirectionalSync() {
 }
 
 async function fixConflicts(
-  s3Files: Array<{ key: string; lastModified: Date }>,
+  s3Files: { key: string; lastModified: Date }[],
 ) {
   const deletePromises: Promise<void>[] = [];
 
-  const keyMap = new Map<string, Array<{ key: string; lastModified: Date }>>();
+  const keyMap = new Map<string, { key: string; lastModified: Date }[]>();
   for (const file of s3Files) {
     const baseKey = file.key.endsWith("/") ? file.key.slice(0, -1) : file.key;
     if (!keyMap.has(baseKey)) {

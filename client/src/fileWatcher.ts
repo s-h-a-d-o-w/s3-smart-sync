@@ -28,7 +28,7 @@ export function ignore(fileOperationType: FileOperationType, filePath: string) {
     filePath.endsWith(path.sep)
       ? filePath.slice(0, -path.sep.length)
       : filePath,
-    Date.now() + 1000000,
+    Date.now() + 1_000_000,
   );
 }
 
@@ -59,7 +59,7 @@ function shouldIgnore(fileOperationType: FileOperationType, filePath: string) {
   //   )}`,
   // );
   const timestamp = ignoreMaps[fileOperationType].get(filePath);
-  if (!timestamp) return false;
+  if (!timestamp) {return false;}
 
   // If the ignore entry is older than IGNORE_CLEANUP_DURATION, it is probably fair to assume that although we handle errors and call unignore(), something unexpected must have happened and this is a stale entry.
   if (Date.now() - timestamp > IGNORE_CLEANUP_DURATION) {

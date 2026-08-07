@@ -93,7 +93,6 @@ export async function setUpTrayIcon(updateVersion?: string) {
       text: "Run on startup",
       checked: await autoLaunch.isEnabled(),
       // It's alright that the tray icon doesn't wait for our code.
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       onClick: async (item) => {
         if (IS_WINDOWS && !(await fileExists(autoLaunchTarget))) {
           await writeFile(
@@ -113,7 +112,6 @@ export async function setUpTrayIcon(updateVersion?: string) {
     {
       id: Symbol(),
       text: "Exit",
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       onClick: async () => {
         logger.info("Exiting...");
         await shutdown();

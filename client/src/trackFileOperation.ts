@@ -2,14 +2,14 @@ import { logger } from "@s3-smart-sync/shared/logger.ts";
 import { destroyTrayIcon } from "./trayWrapper.ts";
 
 const MAX_NUMBER_OF_OPERATIONS = 10;
-const LONG_OBSERVATION_DURATION = 10000;
+const LONG_OBSERVATION_DURATION = 10_000;
 
 const fileOperations: Record<string, [number, number | undefined][]> = {}; // <S3 key, [timestamp, size?][]>
 const cleanupTimers: Record<string, NodeJS.Timeout | undefined> = {};
 
 export function cleanupFileOperationsTimers() {
   Object.values(cleanupTimers).forEach((timer) => {
-    if (timer) clearTimeout(timer);
+    if (timer) {clearTimeout(timer);}
   });
 }
 

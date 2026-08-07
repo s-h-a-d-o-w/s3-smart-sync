@@ -107,7 +107,7 @@ export function setUpWebsocket(
 
           for (const record of snsMessage.Records) {
             const key = decodeURIComponent(
-              record.s3.object.key.replace(/\+/g, " "),
+              record.s3.object.key.replaceAll('+', " "),
             );
 
             if (record.eventName.startsWith("ObjectCreated:")) {

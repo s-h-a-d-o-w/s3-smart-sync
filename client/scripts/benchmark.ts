@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { join } from "node:path";
+
 dotenv.config({
   path: join(import.meta.dirname, "../../.env.test"),
 });

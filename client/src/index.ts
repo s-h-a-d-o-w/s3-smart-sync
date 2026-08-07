@@ -123,14 +123,14 @@ async function main() {
     try {
       await getLastModified(preliminaryKey + "/");
       isDirectory = true;
-    } catch (_) {
+    } catch {
       // empty
     }
 
     if (!isDirectory) {
       try {
         await getLastModified(preliminaryKey);
-      } catch (_) {
+      } catch {
         logger.debug(`removeFile: Doesn't exist: ${preliminaryKey}`);
         return;
       }
@@ -159,7 +159,7 @@ async function main() {
         logger.debug(`syncFile: Already up to date: ${key}`);
         return;
       }
-    } catch (_) {
+    } catch {
       // File doesn't exist on S3
     }
 
