@@ -14,7 +14,7 @@ import {
   stopServer,
   waitUntil,
   withTimeout,
-} from "./utilities.ts";
+} from "../tests/utilities.ts";
 
 const clientIds = [0, 1] as const;
 
