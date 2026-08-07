@@ -27,6 +27,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@v2
+        with:
+          runtime: node
       - name: Package client
         run: pnpm --filter @s3-smart-sync/client package
       - name: Upload package
