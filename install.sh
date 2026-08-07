@@ -57,7 +57,6 @@ cleanup() {
     run_privileged "${remove_cmd[@]}" "${installed_packages[@]}" || true
   fi
 }
-trap cleanup EXIT
 
 install_dependencies() {
   local missing=()
@@ -108,5 +107,7 @@ curl -fsSL -o "$ARCHIVE" "$download_url"
 echo "Extracting to $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 tar -xzf "$ARCHIVE" -C "$INSTALL_DIR" --strip-components=1
+
+cleanup
 
 echo "Done. Fill in the required variables in $INSTALL_DIR/.env, then run $INSTALL_DIR/s3-smart-sync"
