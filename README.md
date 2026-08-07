@@ -8,8 +8,6 @@ I'm using this myself 24/7 (used to on Windows, since about July 2026 on Linux -
 
 **Make backups of your data regularly!**
 
-Windows: If you want the tray icon to look prettier, you have to manually enable the compatibility setting -> high DPI -> scaling behavior performed by: application.
-
 ## How to use (server)
 
 - Deploy the server using the Dockerfile or of course cloning and doing what's in Dockerfile directly on the server. Use `pnpm build:server` either before building the docker image or during the steps, depending on how you end up deploying. (Messages sent by the server contain file paths, so I strongly recommend using WSS. If you deploy using CapRover, you can simply enable HTTPS/websockets and it'll take care of the letsencrypt certificate renewal.)
@@ -18,6 +16,8 @@ Windows: If you want the tray icon to look prettier, you have to manually enable
 ## How to use (client with UI)
 
 - Run the latest release on your client machine(s).
+
+Windows only: If you want the tray icon to look prettier, you have to manually enable the compatibility setting -> high DPI -> scaling behavior performed by: application.
 
 ## How to use (client with CLI)
 
