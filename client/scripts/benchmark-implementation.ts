@@ -1,7 +1,7 @@
-import { join } from "node:path";
+import path from "node:path";
 import { readFile, rm } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
-import chokidar from "chokidar";
+import { watch } from "chokidar";
 import {
   cleanupLocalDirectories,
   cleanupS3,
@@ -26,7 +26,7 @@ function watchForFileEvent(
   eventType: "add" | "change" | "unlink",
 ): Promise<void> {
   return new Promise((resolve) => {
-    const watcher = chokidar.watch(filePath, {
+    const watcher = watch(filePath, {
       awaitWriteFinish: true,
       ignoreInitial: eventType !== "add",
     });
@@ -69,8 +69,8 @@ async function getMeasurements() {
     // "xlarge.txt": "e".repeat(10 * 1024 * 1024), // 10MB
   };
 
-  const watchPromises = Object.keys(testFiles).map((key) => 
-    watchForFileEvent(join(clientDirectories[1], key), "add")
+  const watchPromises = Object.keys(testFiles).map((key) =>
+    watchForFileEvent(path.join(clientDirectories[1], key), "add"),
   );
 
   let startTime = performance.now();
@@ -85,7 +85,7 @@ async function getMeasurements() {
 
   // Verify content is correct
   for (const [key, expectedContent] of Object.entries(testFiles)) {
-    const filePath = join(clientDirectories[1], key);
+    const filePath = path.join(clientDirectories[1], key);
     const content = await readFile(filePath, "utf8");
     if (content !== expectedContent) {
       throw new Error(`Content didn't match for ${key}`);
@@ -96,12 +96,12 @@ async function getMeasurements() {
   await new Promise((resolve) => setTimeout(resolve, 3000));
 
   const watchPromise = watchForFileEvent(
-    join(clientDirectories[1], "small1.txt"),
+    path.join(clientDirectories[1], "small1.txt"),
     "unlink",
   );
 
   startTime = performance.now();
-  await rm(join(clientDirectories[0], "small1.txt"));
+  await rm(path.join(clientDirectories[0], "small1.txt"));
   await mockSnsMessage("small1.txt", "delete");
   await withTimeout(watchPromise, 10_000);
   endTime = performance.now();

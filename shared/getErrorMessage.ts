@@ -1,13 +1,12 @@
 export function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
-    return error.stack || error.message;
+    return error.stack ?? error.message;
   } else if (typeof error === "string") {
     return error;
   }
-    try {
-      return JSON.stringify(error, null, 2);
-    } catch {
-      return "Error cannot be converted to string!";
-    }
-  
+  try {
+    return JSON.stringify(error, undefined, 2);
+  } catch {
+    return "Error cannot be converted to string!";
+  }
 }

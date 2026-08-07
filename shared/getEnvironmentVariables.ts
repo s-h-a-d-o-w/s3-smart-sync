@@ -1,5 +1,5 @@
 // Use for required variables only!
-export async function getEnvironmentVariables<T extends string>(...names: T[]) {
+export function getEnvironmentVariables<T extends string>(...names: T[]) {
   const result = Object.fromEntries(
     Object.entries(process.env).filter(([name]) => names.includes(name as T)),
   );

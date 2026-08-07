@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "execa": "^9.6.0",
     "winston": "^3.17.0"
   }
 }

@@ -1,4 +1,4 @@
-import { ChildProcess,spawn } from "node:child_process";
+import { ChildProcess, spawn } from "node:child_process";
 
 import {
   DeleteObjectsCommand,
@@ -10,7 +10,7 @@ import { Upload } from "@aws-sdk/lib-storage";
 import { logger } from "@s3-smart-sync/shared/logger.ts";
 import { randomBytes } from "node:crypto";
 import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
-import path, { join } from "node:path";
+import path from "node:path";
 import {
   ACCESS_KEY,
   AWS_REGION,
@@ -30,14 +30,14 @@ function toPrefixedKey(key: string) {
 }
 
 function localDirectory(id: number) {
-  return join(import.meta.dirname, `test-client-${id}`);
+  return path.join(import.meta.dirname, `test-client-${id}`);
 }
 
 function syncDirectory(id: number) {
-  return join(localDirectory(id), S3_PREFIX);
+  return path.join(localDirectory(id), S3_PREFIX);
 }
 
-const clients: Record<number, ChildProcess> = {};
+const clients = new Map<number, ChildProcess>();
 export const clientLogs: Record<number, string> = {};
 let serverProcess: ChildProcess | undefined;
 
@@ -49,136 +49,40 @@ const s3Client = new S3Client({
   },
 });
 
-export async function cleanupLocalDirectories(
-  baseDir: string = import.meta.dirname,
-) {
-  const testClientDirectories = (await readdir(baseDir)).filter((file) =>
-    file.startsWith("test-client-"),
-  );
-  await Promise.all(
-    testClientDirectories.map((directory) =>
-      rm(join(baseDir, directory), {
-        recursive: true,
-        force: true,
-      }),
-    ),
-  );
-}
-
-// Limited to 1000 objects!
-export async function cleanupS3() {
-  try {
-    const { Contents } = await s3Client.send(
-      new ListObjectsV2Command({
-        Bucket: S3_BUCKET,
-        Prefix: S3_PREFIX,
-      }),
-    );
-
-    if (!Contents?.length) {return;}
-
-    await s3Client.send(
-      new DeleteObjectsCommand({
-        Bucket: S3_BUCKET,
-        Delete: {
-          Objects: Contents.map(({ Key }) => ({ Key })),
-        },
-      }),
-    );
-  } catch (error) {
-    logger.error(`Failed to cleanup S3 bucket: ${error}`);
-  }
-}
-
-export async function createClientDirectories<T extends readonly number[]>(
-  ids: T,
-) {
-  return Object.fromEntries(
-    await Promise.all(
-      ids.map(async (id) => {
-        const directory = syncDirectory(id);
-        await mkdir(directory, { recursive: true });
-        return [id, directory] as const;
-      }),
-    ),
-  ) as Record<T[number], string>;
-}
-
-/**
- * Includes sending SNS message
- */
-export async function createDirectory(id: number, key: `${string}/`) {
-  await createFile(id, key, "");
-}
-
-/**
- * Includes sending SNS message
- */
-export async function createFile(id: number, key: string, content: string) {
-  const clientDirectory = syncDirectory(id);
-  if (key.endsWith("/")) {
-    await mkdir(join(clientDirectory, key), { recursive: true });
-  } else {
-    await mkdir(path.dirname(join(clientDirectory, key)), { recursive: true });
-    await writeFile(join(clientDirectory, key), content);
-  }
-
-  let lastModified: Date | undefined;
-  await waitUntil(async () => {
-    const { Body, LastModified } = await s3Client.send(
-      new GetObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: toPrefixedKey(key),
-      }),
-    );
-    lastModified = LastModified;
-
-    // We have to check content in case the file already existed
-    const actualContent = await Body?.transformToString();
-    return actualContent === content;
-  });
-
-  // Wait for modified timestamp syncing
-  if (lastModified) {
-    await waitUntil(async () => 
-      (
-        (await stat(join(clientDirectory, key))).mtime.valueOf() ===
-        lastModified!.valueOf()
-      )
-    );
-  } else {
-    throw new Error("No last modified info for " + key);
-  }
-
-  await mockSnsMessage(key, "put");
-}
-
-function killProcess(proc: ChildProcess | undefined): Promise<void> {
-  return new Promise((resolve) => {
-    if (!proc) {
-      resolve();
-      return;
-    }
-
-    proc.once("exit", () => {
-      resolve();
-    });
-
-    proc.kill("SIGINT");
-  });
-}
-
-export function list(prefix: string) {
-  return s3Client.send(
-    new ListObjectsV2Command({
-      Bucket: S3_BUCKET,
-      Prefix: toPrefixedKey(prefix),
-    }),
-  );
-}
-
 export function pause(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function waitUntil(
+  fn: () => unknown,
+  {
+    interval = 200,
+    timeout = 5000,
+  }: { interval?: number; timeout?: number } = {},
+) {
+  const startTime = Date.now();
+
+  for (;;) {
+    if (timeout !== 0 && Date.now() - startTime >= timeout) {
+      break;
+    }
+
+    try {
+      // only exceptions or returning false will result in continuation
+      if ((await fn()) === false) {
+        await pause(interval);
+        continue;
+      }
+
+      return;
+    } catch {
+      // continue
+    }
+
+    await pause(interval);
+  }
+
+  throw new Error("Timeout waiting for condition");
 }
 
 export async function mockSnsMessage(key: string, operation: "put" | "delete") {
@@ -213,6 +117,137 @@ export async function mockSnsMessage(key: string, operation: "put" | "delete") {
   });
 }
 
+export async function cleanupLocalDirectories(
+  baseDir: string = import.meta.dirname,
+) {
+  const testClientDirectories = (await readdir(baseDir)).filter((file) =>
+    file.startsWith("test-client-"),
+  );
+  await Promise.all(
+    testClientDirectories.map((directory) =>
+      rm(path.join(baseDir, directory), {
+        recursive: true,
+        force: true,
+      }),
+    ),
+  );
+}
+
+// Limited to 1000 objects!
+export async function cleanupS3() {
+  try {
+    const { Contents } = await s3Client.send(
+      new ListObjectsV2Command({
+        Bucket: S3_BUCKET,
+        Prefix: S3_PREFIX,
+      }),
+    );
+
+    if (!Contents?.length) {
+      return;
+    }
+
+    await s3Client.send(
+      new DeleteObjectsCommand({
+        Bucket: S3_BUCKET,
+        Delete: {
+          Objects: Contents.map(({ Key }) => ({ Key })),
+        },
+      }),
+    );
+  } catch (error) {
+    logger.error(`Failed to cleanup S3 bucket: ${error}`);
+  }
+}
+
+export async function createClientDirectories<T extends readonly number[]>(
+  ids: T,
+) {
+  return Object.fromEntries(
+    await Promise.all(
+      ids.map(async (id) => {
+        const directory = syncDirectory(id);
+        await mkdir(directory, { recursive: true });
+        return [id, directory] as const;
+      }),
+    ),
+  ) as Record<T[number], string>;
+}
+
+/**
+ * Includes sending SNS message
+ */
+export async function createFile(id: number, key: string, content: string) {
+  const clientDirectory = syncDirectory(id);
+  if (key.endsWith("/")) {
+    await mkdir(path.join(clientDirectory, key), { recursive: true });
+  } else {
+    await mkdir(path.dirname(path.join(clientDirectory, key)), {
+      recursive: true,
+    });
+    await writeFile(path.join(clientDirectory, key), content);
+  }
+
+  let lastModified: Date | undefined;
+  await waitUntil(async () => {
+    const { Body, LastModified } = await s3Client.send(
+      new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: toPrefixedKey(key),
+      }),
+    );
+    lastModified = LastModified;
+
+    // We have to check content in case the file already existed
+    const actualContent = await Body?.transformToString();
+    return actualContent === content;
+  });
+
+  // Wait for modified timestamp syncing
+  if (lastModified) {
+    await waitUntil(
+      async () =>
+        (await stat(path.join(clientDirectory, key))).mtime.valueOf() ===
+        lastModified!.valueOf(),
+    );
+  } else {
+    throw new Error("No last modified info for " + key);
+  }
+
+  await mockSnsMessage(key, "put");
+}
+
+/**
+ * Includes sending SNS message
+ */
+export async function createDirectory(id: number, key: `${string}/`) {
+  await createFile(id, key, "");
+}
+
+function killProcess(proc: ChildProcess | undefined): Promise<void> {
+  return new Promise((resolve) => {
+    if (!proc) {
+      resolve();
+      return;
+    }
+
+    proc.once("exit", () => {
+      resolve();
+    });
+
+    proc.kill("SIGINT");
+  });
+}
+
+export function list(prefix: string) {
+  return s3Client.send(
+    new ListObjectsV2Command({
+      Bucket: S3_BUCKET,
+      Prefix: toPrefixedKey(prefix),
+    }),
+  );
+}
+
 export async function startClients(ids: readonly number[]) {
   await Promise.all(
     ids.map(async (id) => {
@@ -227,14 +262,12 @@ export async function startClients(ids: readonly number[]) {
         },
       );
 
-      clients[id] = clientProcess;
+      clients.set(id, clientProcess);
       clientProcess.on("exit", () => {
-        delete clients[id];
+        clients.delete(id);
       });
 
-      if (!clientLogs[id]) {
-        clientLogs[id] = "";
-      }
+      clientLogs[id] ??= "";
 
       const colorCode = 31 + (id % 6); // Colors from 31-36 (red, green, yellow, blue, magenta, cyan)
       function processBuffer(data: Buffer, stream: "stdout" | "stderr") {
@@ -243,21 +276,23 @@ export async function startClients(ids: readonly number[]) {
           .trim()
           .split("\n")
           .forEach((line) => {
-            process[stream].write(`\u001B[${colorCode}m[${id}]\u001B[0m ${line}\n`);
+            process[stream].write(
+              `\u001B[${colorCode}m[${id}]\u001B[0m ${line}\n`,
+            );
             clientLogs[id] += line + "\n";
           });
       }
-      clientProcess.stdout?.on("data", (data: Buffer) => {
+      clientProcess.stdout.on("data", (data: Buffer) => {
         processBuffer(data, "stdout");
       });
-      clientProcess.stderr?.on("data", (data: Buffer) => {
+      clientProcess.stderr.on("data", (data: Buffer) => {
         processBuffer(data, "stderr");
       });
 
-      await waitUntil(() => 
+      await waitUntil(() =>
         clientLogs[id]
           ?.trim()
-          .endsWith(`Watching for changes in ${clientDirectory}`)
+          .endsWith(`Watching for changes in ${clientDirectory}`),
       );
 
       // Despite waiting for the log output, it seems like the client might still not be fully ready. (Flaky tests)
@@ -286,9 +321,9 @@ export async function startServer() {
 
 export async function stopClients(ids?: readonly number[]) {
   await Promise.all(
-    (ids || Object.keys(clients).map(Number)).map(async (id) => {
-      await killProcess(clients[id]);
-      delete clients[id];
+    (ids ?? [...clients.keys()]).map(async (id) => {
+      await killProcess(clients.get(id));
+      clients.delete(id);
     }),
   );
 }
@@ -304,61 +339,20 @@ export async function upload(key: string, body?: string) {
     params: {
       Bucket: S3_BUCKET,
       Key: toPrefixedKey(key),
-      Body: key.endsWith("/") ? "" : body || "",
+      Body: key.endsWith("/") ? "" : (body ?? ""),
     },
   }).done();
 }
 
-export async function waitUntil(
-  fn: () => unknown,
-  {
-    interval = 200,
-    timeout = 5000,
-  }: { interval?: number; timeout?: number } = {},
-) {
-  const startTime = Date.now();
-
-  while (timeout === 0 || Date.now() - startTime < timeout) {
-    try {
-      // only exceptions or returning false will result in continuation
-      if ((await fn()) === false) {
-        await pause(interval);
-        continue;
-      }
-
-      return;
-    } catch {
-      // continue
-    }
-
-    await pause(interval);
-  }
-
-  throw new Error("Timeout waiting for condition");
-}
-
-export async function waitForEmptyDirectories() {
-  await waitUntil(async () => {
-    for (const id of Object.keys(clients)) {
-      if ((await readdir(syncDirectory(Number(id)))).length > 0) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-}
-
-export async function withTimeout<T>(
+export function withTimeout<T>(
   promise: Promise<T>,
   timeout = 1000,
 ): Promise<T> {
   const timeoutError = new Error(`Operation timed out after ${timeout} ms`);
   return Promise.race([
     promise,
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    new Promise((_, reject) =>
+    new Promise<T>((_resolve, reject) =>
       setTimeout(() => reject(timeoutError), timeout),
-    ) as Promise<T>,
+    ),
   ]);
 }

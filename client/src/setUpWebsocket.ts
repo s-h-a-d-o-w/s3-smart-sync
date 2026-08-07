@@ -1,5 +1,5 @@
 import type { S3Event, SNSMessage } from "aws-lambda";
-import WebSocket from "ws";
+import { WebSocket } from "ws";
 import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.ts";
 import { logger } from "@s3-smart-sync/shared/logger.ts";
 import { biDirectionalSync } from "./biDirectionalSync.ts";
@@ -47,6 +47,7 @@ export function cleanupWebsocket() {
       ws?.once("close", () => {
         clearTimeout(forceCloseTimeout);
         ws = undefined;
+        // oxlint-disable-next-line promise/no-multiple-resolved
         resolve();
       });
 
@@ -81,16 +82,13 @@ export function setUpWebsocket(
       suspendFileWatcher();
       // We don't await this so that pongs can be sent during sync.
       biDirectionalSync()
-        .then(() => {
-          /* empty */
-        })
-        .catch((error) => {
-          logger.error(`Error during initial sync: ${getErrorMessage(error)}`);
-        })
         .finally(() => {
           changeTrayIconState(TrayIconState.Idle);
           resumeFileWatcher();
           resolve();
+        })
+        .catch((error) => {
+          logger.error(`Error during initial sync: ${getErrorMessage(error)}`);
         });
     });
 
@@ -107,7 +105,7 @@ export function setUpWebsocket(
 
           for (const record of snsMessage.Records) {
             const key = decodeURIComponent(
-              record.s3.object.key.replaceAll('+', " "),
+              record.s3.object.key.replaceAll("+", " "),
             );
 
             if (record.eventName.startsWith("ObjectCreated:")) {

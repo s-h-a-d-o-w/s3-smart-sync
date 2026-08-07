@@ -1,6 +1,15 @@
+import {
+  it,
+  describe,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  expect,
+} from "vitest";
 import { fileExists } from "@s3-smart-sync/shared/fileExists.ts";
 import { readFile, rm, stat } from "node:fs/promises";
-import { join } from "node:path";
+import path from "node:path";
 import {
   UNIGNORE_DURATION,
   WATCHER_DEBOUNCE_DURATION,
@@ -29,11 +38,11 @@ const clientIds = [0, 1] as const;
 let clientDirectories: Record<number, string>;
 
 const originalIt = it;
-// @ts-expect-error
+// @ts-expect-error overriding global it to add logging
 globalThis.it = (name: string, fn: () => Promise<void>, timeout?: number) => {
   originalIt(
     name,
-    async function  it() {
+    () => {
       process.stdout.write(
         `===============================================================================\n`,
       );
@@ -41,12 +50,12 @@ globalThis.it = (name: string, fn: () => Promise<void>, timeout?: number) => {
       process.stdout.write(
         `===============================================================================\n`,
       );
-      return  fn();
+      return fn();
     },
     timeout,
   );
 };
-// @ts-expect-error
+// @ts-expect-error add `.only` to overridden global it
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 globalThis.it.only = (
   name: string,
@@ -107,7 +116,7 @@ describe("E2E Tests", () => {
 
     async function verifyFiles(clientDir: string) {
       for (const [key, expectedContent] of Object.entries(TEST_FILES)) {
-        const filePath = join(clientDir, key);
+        const filePath = path.join(clientDir, key);
 
         if (!(await fileExists(filePath))) {
           throw new Error(`File ${filePath} does not exist`);
@@ -153,7 +162,7 @@ describe("E2E Tests", () => {
       async () =>
         expect(
           await readFile(
-            join(clientDirectories[1]!, "large-file.txt"),
+            path.join(clientDirectories[1]!, "large-file.txt"),
             "utf8",
           ),
         ).toBe(largeContent),
@@ -163,7 +172,7 @@ describe("E2E Tests", () => {
     // Client 1 shouldn't do anything after the download has finished. (Which means that the ignore mechanism works with large files.)
     await pause(WATCHER_DEBOUNCE_DURATION * 2);
     expect(clientLogs[1]!.trim().split("\n").at(-1)?.trim()).toMatch(
-      /Downloaded: .*large-file\.txt$/,
+      /Downloaded: .*large-file\.txt$/u,
     );
   }, 20_000);
 
@@ -171,7 +180,10 @@ describe("E2E Tests", () => {
     await createFile(0, "new-file.txt", "New content");
     await waitUntil(async () =>
       expect(
-        await readFile(join(clientDirectories[1]!, "new-file.txt"), "utf8"),
+        await readFile(
+          path.join(clientDirectories[1]!, "new-file.txt"),
+          "utf8",
+        ),
       ).toBe("New content"),
     );
     await pause(UNIGNORE_DURATION + 10);
@@ -179,7 +191,10 @@ describe("E2E Tests", () => {
     await createFile(1, "new-file.txt", "Changed content");
     await waitUntil(async () =>
       expect(
-        await readFile(join(clientDirectories[0]!, "new-file.txt"), "utf8"),
+        await readFile(
+          path.join(clientDirectories[0]!, "new-file.txt"),
+          "utf8",
+        ),
       ).toBe("Changed content"),
     );
   });
@@ -187,10 +202,10 @@ describe("E2E Tests", () => {
   it("should handle replacing a file with an empty directory", async () => {
     await createFile(0, "file-then-directory", "starts as a file");
     await waitUntil(() =>
-      fileExists(join(clientDirectories[1]!, "file-then-directory")),
+      fileExists(path.join(clientDirectories[1]!, "file-then-directory")),
     );
 
-    await rm(join(clientDirectories[0]!, "file-then-directory"));
+    await rm(path.join(clientDirectories[0]!, "file-then-directory"));
     await pause(WATCHER_DEBOUNCE_DURATION + 300);
     await mockSnsMessage("file-then-directory", "delete");
     // Wait for processing of delete SNS message
@@ -199,7 +214,7 @@ describe("E2E Tests", () => {
     await createDirectory(0, "file-then-directory/");
     await waitUntil(async () =>
       (
-        await stat(join(clientDirectories[1]!, "file-then-directory"))
+        await stat(path.join(clientDirectories[1]!, "file-then-directory"))
       ).isDirectory(),
     );
   });
@@ -208,11 +223,11 @@ describe("E2E Tests", () => {
     await createDirectory(0, "directory-then-file/");
     await waitUntil(async () =>
       (
-        await stat(join(clientDirectories[1]!, "directory-then-file"))
+        await stat(path.join(clientDirectories[1]!, "directory-then-file"))
       ).isDirectory(),
     );
 
-    await rm(join(clientDirectories[0]!, "directory-then-file"), {
+    await rm(path.join(clientDirectories[0]!, "directory-then-file"), {
       recursive: true,
     });
     await pause(WATCHER_DEBOUNCE_DURATION + 1000);
@@ -228,7 +243,7 @@ describe("E2E Tests", () => {
     await waitUntil(async () => {
       expect(
         await readFile(
-          join(clientDirectories[1]!, "directory-then-file"),
+          path.join(clientDirectories[1]!, "directory-then-file"),
           "utf8",
         ),
       ).toBe("now it's a file");
@@ -244,7 +259,7 @@ describe("E2E Tests", () => {
 
     await startClients(clientIds);
     await waitUntil(() =>
-      readFile(join(clientDirectories[0]!, "duplicate-file"), "utf8"),
+      readFile(path.join(clientDirectories[0]!, "duplicate-file"), "utf8"),
     );
 
     const { Contents } = await list("duplicate-file");

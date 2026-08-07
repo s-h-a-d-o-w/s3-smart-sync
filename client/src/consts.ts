@@ -7,12 +7,11 @@ export const IS_WINDOWS = process.platform === "win32";
 export const RELEASE_URL =
   "https://github.com/s-h-a-d-o-w/s3-smart-sync/releases/latest";
 
-export const RECONNECT_DELAY = Number.parseInt(
-  process.env["RECONNECT_DELAY"] || "500",
-  10,
+export const RECONNECT_DELAY = Math.trunc(
+  Number(process.env["RECONNECT_DELAY"] ?? "500"),
 );
 
-const { LOCAL_DIR: RAW_LOCAL_DIR } = await getEnvironmentVariables("LOCAL_DIR");
+const { LOCAL_DIR: RAW_LOCAL_DIR } = getEnvironmentVariables("LOCAL_DIR");
 export const LOCAL_DIR = untildify(RAW_LOCAL_DIR);
 
 export const {
@@ -22,7 +21,7 @@ export const {
   SECRET_KEY,
   WEBSOCKET_URL,
   WEBSOCKET_TOKEN,
-} = await getEnvironmentVariables(
+} = getEnvironmentVariables(
   "ACCESS_KEY",
   "AWS_REGION",
   "S3_BUCKET",

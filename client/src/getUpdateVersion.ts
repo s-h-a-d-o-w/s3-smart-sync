@@ -9,10 +9,7 @@ export async function getUpdateVersion() {
     const response = await fetch(GITHUB_API_URL);
     const data = (await response.json()) as { tag_name: string };
 
-    if (
-      response.ok &&
-      data?.tag_name?.replace("v", "") !== packageJson.version
-    ) {
+    if (response.ok && data.tag_name.replace("v", "") !== packageJson.version) {
       return data.tag_name;
     }
   } catch (error) {

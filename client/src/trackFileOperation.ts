@@ -9,7 +9,9 @@ const cleanupTimers: Record<string, NodeJS.Timeout | undefined> = {};
 
 export function cleanupFileOperationsTimers() {
   Object.values(cleanupTimers).forEach((timer) => {
-    if (timer) {clearTimeout(timer);}
+    if (timer) {
+      clearTimeout(timer);
+    }
   });
 }
 
@@ -19,15 +21,13 @@ export function cleanupFileOperationsTimers() {
  * @param key S3 key
  */
 export function trackFileOperation(key: string, size?: number) {
-  if (!fileOperations[key]) {
-    fileOperations[key] = [];
-  }
+  fileOperations[key] ??= [];
   fileOperations[key].push([Date.now(), size]);
 
   // >5 ops within 10 sec. (since local ops are debounced with 500 ms)
   const hasTooManyRecentOperations =
     fileOperations[key].length > MAX_NUMBER_OF_OPERATIONS &&
-    Date.now() - (fileOperations[key].at(-1)?.[0] || 0) <
+    Date.now() - (fileOperations[key].at(-1)?.[0] ?? 0) <
       LONG_OBSERVATION_DURATION;
 
   const uniqueSizes = new Set(
@@ -43,8 +43,8 @@ export function trackFileOperation(key: string, size?: number) {
         key
       ]
         .map(
-          ([timestamp, size]) =>
-            `${new Date(timestamp).toISOString()}: ${size} Bytes`,
+          ([timestamp, bytes]) =>
+            `${new Date(timestamp).toISOString()}: ${bytes} Bytes`,
         )
         .join("\n")}\nExiting...`,
     );
@@ -53,16 +53,14 @@ export function trackFileOperation(key: string, size?: number) {
   }
 
   // Schedule cleanup
-  if (!cleanupTimers[key]) {
-    cleanupTimers[key] = setTimeout(() => {
-      cleanupTimers[key] = undefined;
-      if (fileOperations[key]) {
-        const beforeObservedWindow =
-          Date.now() - (LONG_OBSERVATION_DURATION + 1000);
-        fileOperations[key] = fileOperations[key].filter(
-          ([timestamp]) => timestamp > beforeObservedWindow,
-        );
-      }
-    }, 61 * 1000);
-  }
+  cleanupTimers[key] ??= setTimeout(() => {
+    cleanupTimers[key] = undefined;
+    if (fileOperations[key]) {
+      const beforeObservedWindow =
+        Date.now() - (LONG_OBSERVATION_DURATION + 1000);
+      fileOperations[key] = fileOperations[key].filter(
+        ([timestamp]) => timestamp > beforeObservedWindow,
+      );
+    }
+  }, 61 * 1000);
 }

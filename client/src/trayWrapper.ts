@@ -1,47 +1,51 @@
-import * as originalTray from "node-tray";
+import {
+  createTrayIcon as originalCreateTrayIcon,
+  destroyTrayIcon as originalDestroyTrayIcon,
+  updateTrayIconImage as originalUpdateTrayIconImage,
+  updateTrayItem as originalUpdateTrayItem,
+  updateTrayTooltip as originalUpdateTrayTooltip,
+} from "node-tray";
 import { IS_CLI } from "./consts.ts";
 
-type TrayType = typeof originalTray;
-
 export const createTrayIcon = (
-  ...args: Parameters<TrayType["createTrayIcon"]>
-): ReturnType<TrayType["createTrayIcon"]> => {
+  ...args: Parameters<typeof originalCreateTrayIcon>
+): ReturnType<typeof originalCreateTrayIcon> => {
   if (!IS_CLI) {
-    return originalTray.createTrayIcon(...args);
+    return originalCreateTrayIcon(...args);
   }
 
   return Promise.resolve();
 };
 
 export const destroyTrayIcon = (
-  ...args: Parameters<TrayType["destroyTrayIcon"]>
-): ReturnType<TrayType["destroyTrayIcon"]> => {
+  ...args: Parameters<typeof originalDestroyTrayIcon>
+): ReturnType<typeof originalDestroyTrayIcon> => {
   if (!IS_CLI) {
-    return originalTray.destroyTrayIcon(...args);
+    return originalDestroyTrayIcon(...args);
   }
 };
 
 export const updateTrayIconImage = (
-  ...args: Parameters<TrayType["updateTrayIconImage"]>
-): ReturnType<TrayType["updateTrayIconImage"]> => {
+  ...args: Parameters<typeof originalUpdateTrayIconImage>
+): ReturnType<typeof originalUpdateTrayIconImage> => {
   if (!IS_CLI) {
-    return originalTray.updateTrayIconImage(...args);
+    return originalUpdateTrayIconImage(...args);
   }
 };
 
 export const updateTrayItem = (
-  ...args: Parameters<TrayType["updateTrayItem"]>
-): ReturnType<TrayType["updateTrayItem"]> => {
+  ...args: Parameters<typeof originalUpdateTrayItem>
+): ReturnType<typeof originalUpdateTrayItem> => {
   if (!IS_CLI) {
-    return originalTray.updateTrayItem(...args);
+    return originalUpdateTrayItem(...args);
   }
 };
 
 export const updateTrayTooltip = (
-  ...args: Parameters<TrayType["updateTrayTooltip"]>
-): ReturnType<TrayType["updateTrayTooltip"]> => {
+  ...args: Parameters<typeof originalUpdateTrayTooltip>
+): ReturnType<typeof originalUpdateTrayTooltip> => {
   if (!IS_CLI) {
-    return originalTray.updateTrayTooltip(...args);
+    return originalUpdateTrayTooltip(...args);
   }
 };
 

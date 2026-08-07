@@ -27,9 +27,10 @@ const logLevel = getLogLevel();
 
 const myFormat = combine(
   timestamp(),
-  printf(({ level, message, timestamp }) => 
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    `${timestamp} [${level}]: ${message}`
+  printf(
+    ({ level, message, timestamp: ts }) =>
+      // oxlint-disable-next-line typescript/restrict-template-expressions
+      `${ts} [${level}]: ${message}`,
   ),
 );
 
@@ -43,10 +44,9 @@ if (logLevel === "info" || logLevel === "debug") {
 export const logger = winston.createLogger({
   level: logLevel,
   format: myFormat,
-  transports:
-    [
-      new winston.transports.Console({
-        format: myFormat,
-      }),
-    ],
+  transports: [
+    new winston.transports.Console({
+      format: myFormat,
+    }),
+  ],
 });

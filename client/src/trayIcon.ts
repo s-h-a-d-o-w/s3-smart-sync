@@ -3,11 +3,10 @@ import { getLogLevel, logger } from "@s3-smart-sync/shared/logger.ts";
 import AutoLaunch from "auto-launch";
 import { debounce } from "lodash-es";
 import { writeFile } from "node:fs/promises";
-import path, { basename, dirname } from "node:path";
+import path from "node:path";
 import open from "open";
 import packageJson from "../package.json" with { type: "json" };
 import { IS_WINDOWS, RELEASE_URL } from "./consts.ts";
-import { shutdown } from "./index.ts";
 import {
   createTrayIcon,
   type TrayItem,
@@ -27,7 +26,7 @@ let currentState: TrayIconState = TrayIconState.Disconnected;
 const ICON_EXTENSION = IS_WINDOWS ? ".ico" : ".png";
 
 const autoLaunchTarget = path.join(
-  dirname(process.execPath),
+  path.dirname(process.execPath),
   IS_WINDOWS ? "s3-smart-sync-autolaunch.bat" : "s3-smart-sync",
 );
 const autoLaunch = new AutoLaunch({
@@ -52,7 +51,7 @@ export function changeTrayIconState(trayIconState: TrayIconState) {
     return;
   } else if (trayIconState === TrayIconState.Busy) {
     updateTrayIconImage(path.resolve("./assets/icon_busy" + ICON_EXTENSION));
-  } else if (trayIconState === TrayIconState.Disconnected) {
+  } else {
     updateTrayIconImage(
       path.resolve("./assets/icon_disconnected" + ICON_EXTENSION),
     );
@@ -61,18 +60,21 @@ export function changeTrayIconState(trayIconState: TrayIconState) {
   currentState = trayIconState;
 }
 
-export async function setUpTrayIcon(updateVersion?: string) {
+export async function setUpTrayIcon(
+  shutdown: () => Promise<void>,
+  updateVersion?: string,
+) {
   const items: TrayItem[] = [];
 
   if (getLogLevel() !== "error") {
     items.push(
       {
-        id: Symbol(),
+        id: Symbol("logLevel"),
         text: "Log level: " + getLogLevel(),
         enabled: false,
       },
       {
-        id: Symbol(),
+        id: Symbol("spacer"),
         text: "",
         enabled: false,
       },
@@ -81,7 +83,7 @@ export async function setUpTrayIcon(updateVersion?: string) {
 
   items.push(
     {
-      id: Symbol(),
+      id: Symbol("version"),
       text: `v${packageJson.version}${updateVersion ? ` (Update available: ${updateVersion})` : ""}`,
       enabled: Boolean(updateVersion),
       onClick: () => {
@@ -89,7 +91,7 @@ export async function setUpTrayIcon(updateVersion?: string) {
       },
     },
     {
-      id: Symbol(),
+      id: Symbol("runOnStartup"),
       text: "Run on startup",
       checked: await autoLaunch.isEnabled(),
       // It's alright that the tray icon doesn't wait for our code.
@@ -97,7 +99,7 @@ export async function setUpTrayIcon(updateVersion?: string) {
         if (IS_WINDOWS && !(await fileExists(autoLaunchTarget))) {
           await writeFile(
             autoLaunchTarget,
-            `cmd /c "cd /d ${dirname(process.execPath)} && start ${basename(process.execPath)}"`,
+            `cmd /c "cd /d ${path.dirname(process.execPath)} && start ${path.basename(process.execPath)}"`,
           );
         }
 
@@ -110,7 +112,7 @@ export async function setUpTrayIcon(updateVersion?: string) {
       },
     },
     {
-      id: Symbol(),
+      id: Symbol("exit"),
       text: "Exit",
       onClick: async () => {
         logger.info("Exiting...");

@@ -1,5 +1,5 @@
 import { logger } from "@s3-smart-sync/shared/logger.ts";
-import { shutdown } from "./index.ts";
+import { shutdown } from "./shutdown.ts";
 
 // While it's kind of important to write these errors to the log, they also make it possible for the popup on missing environment variables to show. I don't know why node doesn't show it when these handlers don't exist...
 process.on("uncaughtException", (error) => {

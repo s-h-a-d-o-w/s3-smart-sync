@@ -10,7 +10,7 @@ import { Upload } from "@aws-sdk/lib-storage";
 import { logger } from "@s3-smart-sync/shared/logger.ts";
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, rm, stat, utimes } from "node:fs/promises";
-import { dirname, join, relative } from "node:path";
+import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import {
   ACCESS_KEY,
@@ -43,17 +43,16 @@ export async function convertAbsolutePathToKey(filePath: string) {
     const stats = await stat(filePath);
     if (stats.isDirectory()) {
       // For directories, ensure the key ends with a forward slash
-      const preliminaryKey = relative(LOCAL_DIR, filePath).replaceAll(
-        "\\",
-        "/",
-      );
+      const preliminaryKey = path
+        .relative(LOCAL_DIR, filePath)
+        .replaceAll("\\", "/");
       return preliminaryKey + (preliminaryKey.endsWith("/") ? "" : "/");
     }
   } catch {
     // empty
   }
 
-  return relative(LOCAL_DIR, filePath).replaceAll("\\", "/");
+  return path.relative(LOCAL_DIR, filePath).replaceAll("\\", "/");
 }
 
 export async function getLastModified(key: string) {
@@ -119,7 +118,7 @@ export async function download(key: string, localPath: string) {
 
   if (Body) {
     // We don't manage ignoring potentially new created directories here because that would be a lot of overhead. Instead, if syncing is triggered, we let the upload of the directory handle breaking that chain. (via updating modification time and that timestamp then being the same)
-    await mkdir(dirname(localPath), { recursive: true });
+    await mkdir(path.dirname(localPath), { recursive: true });
 
     ignore(FileOperationType.Sync, localPath);
     try {
@@ -187,13 +186,13 @@ export async function upload(localPath: string, key: string) {
 export async function upToDate(key: string) {
   let lastModifiedLocal: Date | undefined;
   try {
-    lastModifiedLocal = (await stat(join(LOCAL_DIR, key))).mtime;
+    lastModifiedLocal = (await stat(path.join(LOCAL_DIR, key))).mtime;
   } catch {
     // File doesn't exist locally
     return false;
   }
 
   return (
-    lastModifiedLocal?.valueOf() === (await getLastModified(key))?.valueOf()
+    lastModifiedLocal.valueOf() === (await getLastModified(key))?.valueOf()
   );
 }

@@ -1,3 +1,3 @@
 export function getHeartbeatInterval() {
-  return Number.parseInt(process.env["HEARTBEAT_INTERVAL"] || "5000", 10);
+  return Math.trunc(Number(process.env["HEARTBEAT_INTERVAL"] ?? "5000"));
 }

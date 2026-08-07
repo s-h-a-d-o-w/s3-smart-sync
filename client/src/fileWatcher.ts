@@ -1,4 +1,4 @@
-import chokidar, { FSWatcher } from "chokidar";
+import { type FSWatcher, watch } from "chokidar";
 import { debounce } from "lodash-es";
 import { logger } from "@s3-smart-sync/shared/logger.ts";
 import { LOCAL_DIR } from "./consts.ts";
@@ -14,7 +14,7 @@ export type FileOperationType =
 
 export const UNIGNORE_DURATION = 200; // short because it only has to cover: end of operation -> file watcher trigger -> ignore that call
 export const WATCHER_DEBOUNCE_DURATION = 500;
-export const IGNORE_CLEANUP_DURATION = 12 * 60 * 60 * 1000; // presumably, not even a large file transfer lasts longer than this. And this is only an emergency measure anyway.
+const IGNORE_CLEANUP_DURATION = 12 * 60 * 60 * 1000; // presumably, not even a large file transfer lasts longer than this. And this is only an emergency measure anyway.
 
 let watcher: FSWatcher | undefined;
 const ignoreMaps = {
@@ -59,7 +59,9 @@ function shouldIgnore(fileOperationType: FileOperationType, filePath: string) {
   //   )}`,
   // );
   const timestamp = ignoreMaps[fileOperationType].get(filePath);
-  if (!timestamp) {return false;}
+  if (!timestamp) {
+    return false;
+  }
 
   // If the ignore entry is older than IGNORE_CLEANUP_DURATION, it is probably fair to assume that although we handle errors and call unignore(), something unexpected must have happened and this is a stale entry.
   if (Date.now() - timestamp > IGNORE_CLEANUP_DURATION) {
@@ -98,29 +100,32 @@ export function setUpFileWatcher(
   removeFile: LocalToRemoteOperation,
 ) {
   // Don't use for`awaitWriteFinish` because that would cause conflicts with the RECENT_TIMEOUT. Because that time only starts once writing has finished, potential `add` events during writing are ignored anyway.
-  watcher = chokidar.watch(LOCAL_DIR, {
+  watcher = watch(LOCAL_DIR, {
     ignoreInitial: true,
   });
 
   // Each path gets their own debounced function
-  const debounceMap: Record<string, () => void> = {};
+  const debounceMap = new Map<string, () => void>();
   function getDebouncedFunction(
     fileOperationType: FileOperationType,
     localPath: string,
   ): () => void {
     const key = fileOperationType + localPath;
-    if (!debounceMap[key]) {
-      debounceMap[key] = debounce(() => {
-        if (fileOperationType === FileOperationType.Sync) {
-          syncFile(localPath);
-        } else {
-          removeFile(localPath);
-        }
+    if (!debounceMap.has(key)) {
+      debounceMap.set(
+        key,
+        debounce(() => {
+          if (fileOperationType === FileOperationType.Sync) {
+            syncFile(localPath);
+          } else {
+            removeFile(localPath);
+          }
 
-        delete debounceMap[key];
-      }, WATCHER_DEBOUNCE_DURATION);
+          debounceMap.delete(key);
+        }, WATCHER_DEBOUNCE_DURATION),
+      );
     }
-    return debounceMap[key];
+    return debounceMap.get(key)!;
   }
 
   const wrappedDebouncedSyncFile = (localPath: string) => {

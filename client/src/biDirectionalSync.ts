@@ -1,6 +1,6 @@
 import { statSync } from "node:fs";
 import { readdir } from "node:fs/promises";
-import { join } from "node:path";
+import path from "node:path";
 import { logger } from "@s3-smart-sync/shared/logger.ts";
 import { LOCAL_DIR, S3_BUCKET } from "./consts.ts";
 import {
@@ -27,7 +27,7 @@ async function listLocalFiles(dir: string) {
   await Promise.all(
     // No destructuring of `entry` because node code relies on `this`!
     directoryEntries.map(async (entry) => {
-      const fullPath = join(entry.parentPath, entry.name);
+      const fullPath = path.join(entry.parentPath, entry.name);
       files.push({
         key: await convertAbsolutePathToKey(fullPath),
         lastModified: statSync(fullPath).mtime,
@@ -38,76 +38,7 @@ async function listLocalFiles(dir: string) {
   return files;
 }
 
-// This sync is obviously purely additive because we can't know about possible deletions that happened in the past.
-let isSyncInProgress = false;
-export async function biDirectionalSync() {
-  if (isSyncInProgress) {
-    return;
-  }
-
-  logger.info("Starting full sync...");
-  isSyncInProgress = true;
-
-  const [preliminaryS3Files, noLastModifiedInfo] = await listS3Files();
-  if (noLastModifiedInfo.length > 0) {
-    logger.error(
-      `No "last modified" date from S3 for file(s): ${noLastModifiedInfo.join(", ")}.\nPlease address this before starting the client again.`,
-    );
-    destroyTrayIcon();
-    process.exit(1);
-  }
-
-  const fixConflictsPromises = await fixConflicts(preliminaryS3Files);
-  // It's possible that some things are attempted to be deleted twice for various reasons. Obviously, we don't care about errors thrown because something that caused the config was already deleted.
-  await Promise.allSettled(fixConflictsPromises);
-
-  const [localFiles, [s3Files]] = await Promise.all([
-    listLocalFiles(LOCAL_DIR),
-    listS3Files(),
-  ]);
-
-  const localPromises = localFiles
-    .map(({ key, lastModified }) => {
-      const s3File = s3Files.find((s3File) => s3File.key === key);
-      if (!s3File || lastModified > s3File.lastModified) {
-        return upload(join(LOCAL_DIR, key), key);
-      }
-    })
-    .filter((task) => task !== undefined);
-
-  const s3Promises = s3Files
-    .map(({ key, lastModified }) => {
-      const localFile = localFiles.find((localFile) => localFile.key === key);
-      if (!localFile || lastModified > localFile.lastModified) {
-        return download(key, join(LOCAL_DIR, key));
-      }
-    })
-    .filter((task) => task !== undefined);
-
-  await Promise.allSettled([...localPromises, ...s3Promises]).then(
-    (results) => {
-      if (results.some(({ status }) => status === "rejected")) {
-        logger.error(
-          "The following errors were encountered during syncing:\n" +
-            (
-              results.filter(
-                ({ status }) => status === "rejected",
-              ) as PromiseRejectedResult[]
-            )
-              .map(({ reason }) => String(reason))
-              .join("\n"),
-        );
-      }
-    },
-  );
-
-  isSyncInProgress = false;
-  logger.info("Done.\n");
-}
-
-async function fixConflicts(
-  s3Files: { key: string; lastModified: Date }[],
-) {
+async function fixConflicts(s3Files: { key: string; lastModified: Date }[]) {
   const deletePromises: Promise<void>[] = [];
 
   const keyMap = new Map<string, { key: string; lastModified: Date }[]>();
@@ -173,4 +104,73 @@ async function fixConflicts(
   }
 
   return deletePromises;
+}
+
+// This sync is obviously purely additive because we can't know about possible deletions that happened in the past.
+let isSyncInProgress = false;
+export async function biDirectionalSync() {
+  if (isSyncInProgress) {
+    return;
+  }
+
+  logger.info("Starting full sync...");
+  isSyncInProgress = true;
+
+  const [preliminaryS3Files, noLastModifiedInfo] = await listS3Files();
+  if (noLastModifiedInfo.length > 0) {
+    logger.error(
+      `No "last modified" date from S3 for file(s): ${noLastModifiedInfo.join(", ")}.\nPlease address this before starting the client again.`,
+    );
+    destroyTrayIcon();
+    process.exit(1);
+  }
+
+  const fixConflictsPromises = await fixConflicts(preliminaryS3Files);
+  // It's possible that some things are attempted to be deleted twice for various reasons. Obviously, we don't care about errors thrown because something that caused the config was already deleted.
+  await Promise.allSettled(fixConflictsPromises);
+
+  const [localFiles, [s3Files]] = await Promise.all([
+    listLocalFiles(LOCAL_DIR),
+    listS3Files(),
+  ]);
+
+  const localPromises = localFiles
+    .map(({ key, lastModified }) => {
+      const s3File = s3Files.find((file) => file.key === key);
+      if (!s3File || lastModified > s3File.lastModified) {
+        return upload(path.join(LOCAL_DIR, key), key);
+      }
+      return undefined;
+    })
+    .filter((task) => task !== undefined);
+
+  const s3Promises = s3Files
+    .map(({ key, lastModified }) => {
+      const localFile = localFiles.find((file) => file.key === key);
+      if (!localFile || lastModified > localFile.lastModified) {
+        return download(key, path.join(LOCAL_DIR, key));
+      }
+      return undefined;
+    })
+    .filter((task) => task !== undefined);
+
+  await Promise.allSettled([...localPromises, ...s3Promises]).then(
+    (results) => {
+      if (results.some(({ status }) => status === "rejected")) {
+        logger.error(
+          "The following errors were encountered during syncing:\n" +
+            (
+              results.filter(
+                ({ status }) => status === "rejected",
+              ) as PromiseRejectedResult[]
+            )
+              .map(({ reason }) => String(reason))
+              .join("\n"),
+        );
+      }
+    },
+  );
+
+  isSyncInProgress = false;
+  logger.info("Done.\n");
 }

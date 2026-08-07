@@ -2,8 +2,8 @@ import { build, type Plugin } from "esbuild";
 
 const failOnWarningPlugin: Plugin = {
   name: "fail-on-warning",
-  setup(build) {
-    build.onEnd((result) => {
+  setup(pluginBuild) {
+    pluginBuild.onEnd((result) => {
       if (result.warnings.length > 0) {
         process.exit(1);
       }

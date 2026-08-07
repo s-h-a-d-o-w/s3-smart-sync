@@ -4,7 +4,7 @@
   "main": "./src/index.ts",
   "type": "module",
   "scripts": {
-    "benchmark": "node ./tests/benchmark.ts",
+    "benchmark": "node ./scripts/benchmark.ts",
     "build": "rimraf dist && node esbuild.mts && bash ./copy-addons.sh",
     "dev": "node . debug",
     "dev:cli": "node . cli",
@@ -28,10 +28,7 @@
     "@types/aws-lambda": "^8.10.152",
     "@types/lodash-es": "^4.17.12",
     "@types/ws": "^8.18.1",
-    "@yao-pkg/pkg": "^6.20.0",
-    "create-nodew-exe": "^2.1.0",
     "esbuild": "^0.24.2",
-    "exe-edit": "^0.1.1",
     "rimraf": "^6.0.1"
   }
 }

@@ -2,7 +2,7 @@ import "dotenv/config";
 
 import express from "express";
 import http from "node:http";
-import WebSocket, { WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 import bodyParser from "body-parser";
 import { ConfirmSubscriptionCommand, SNSClient } from "@aws-sdk/client-sns";
 import type { SNSMessage } from "aws-lambda";
@@ -15,13 +15,11 @@ import MessageValidator from "sns-validator";
 const validator = new MessageValidator();
 const validate = promisify(validator.validate.bind(validator));
 
-interface ExtendedWebSocket extends WebSocket {
-  isAlive?: boolean;
-}
+type ExtendedWebSocket = { isAlive?: boolean } & WebSocket;
 
 const HEARTBEAT_INTERVAL = getHeartbeatInterval();
 const { AWS_REGION, ACCESS_KEY, SECRET_KEY, WEBSOCKET_TOKEN } =
-  await getEnvironmentVariables(
+  getEnvironmentVariables(
     "AWS_REGION",
     "ACCESS_KEY",
     "SECRET_KEY",
@@ -98,7 +96,7 @@ app.post("/sns", async (req, res) => {
 });
 
 wss.on("connection", (client: ExtendedWebSocket, request) => {
-  const token = new URLSearchParams(request.url?.split("?")[1] || "").get(
+  const token = new URLSearchParams(request.url?.split("?")[1] ?? "").get(
     "token",
   );
 
@@ -128,7 +126,9 @@ wss.on("connection", (client: ExtendedWebSocket, request) => {
 
 setInterval(function ping() {
   wss.clients.forEach(function each(client: ExtendedWebSocket) {
-    if (client.isAlive === false) {return client.terminate();}
+    if (client.isAlive === false) {
+      return client.terminate();
+    }
 
     client.isAlive = false;
     client.ping();
