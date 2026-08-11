@@ -3,7 +3,12 @@ import { WebSocket } from "ws";
 import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.ts";
 import { logger } from "@s3-smart-sync/shared/logger.ts";
 import { biDirectionalSync } from "./biDirectionalSync.ts";
-import { RECONNECT_DELAY, WEBSOCKET_TOKEN, WEBSOCKET_URL } from "./consts.ts";
+import {
+  RECONNECT_DELAY,
+  S3_BUCKET,
+  WEBSOCKET_TOKEN,
+  WEBSOCKET_URL,
+} from "./consts.ts";
 import {
   resetIgnoreMaps,
   resumeFileWatcher,
@@ -102,16 +107,28 @@ export function setUpWebsocket(
         const message = JSON.parse(data.toString()) as SNSMessage;
         if (message.Type === "Notification") {
           const snsMessage = JSON.parse(message.Message) as S3Event;
+          logger.info(
+            `Received SNS message:\n${JSON.stringify(snsMessage, undefined, 2)}`,
+          );
 
           for (const record of snsMessage.Records) {
-            const key = decodeURIComponent(
-              record.s3.object.key.replaceAll("+", " "),
-            );
+            const {
+              eventName,
+              s3: {
+                bucket: { name: bucketName },
+                object: { key },
+              },
+            } = record;
+            if (bucketName !== S3_BUCKET) {
+              continue;
+            }
 
-            if (record.eventName.startsWith("ObjectCreated:")) {
-              downloadFile(key);
-            } else if (record.eventName.startsWith("ObjectRemoved:")) {
-              removeLocalFile(key);
+            // S3 turns spaces into `+`.
+            const decodedKey = key.replaceAll("+", " ");
+            if (eventName.startsWith("ObjectCreated:")) {
+              downloadFile(decodedKey);
+            } else if (eventName.startsWith("ObjectRemoved:")) {
+              removeLocalFile(decodedKey);
             } else {
               throw new Error(
                 "Received invalid record: " + JSON.stringify(record),

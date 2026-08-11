@@ -7,7 +7,7 @@
     "benchmark": "node ./scripts/benchmark.ts",
     "build": "rimraf dist && node esbuild.mts && bash ./copy-addons.sh",
     "dev": "node . debug",
-    "dev:cli": "node . cli",
+    "dev:cli": "node . cli debug",
     "package": "pnpm build && bash ./package.sh"
   },
   "dependencies": {
