@@ -5,7 +5,7 @@ import http from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
 import bodyParser from "body-parser";
 import { ConfirmSubscriptionCommand, SNSClient } from "@aws-sdk/client-sns";
-import type { SNSMessage } from "aws-lambda";
+import type { S3Event, SNSMessage } from "aws-lambda";
 import { getEnvironmentVariables } from "@s3-smart-sync/shared/getEnvironmentVariables.ts";
 import { getHeartbeatInterval } from "@s3-smart-sync/shared/getHeartbeatInterval.ts";
 import { logger } from "@s3-smart-sync/shared/logger.ts";
@@ -38,7 +38,7 @@ const snsClient = new SNSClient({
   },
 });
 
-const clients = new Set<WebSocket>();
+const clients = new Map<WebSocket, string>();
 
 app.use(
   bodyParser.json({
@@ -75,12 +75,37 @@ app.post("/sns", async (req, res) => {
       } catch (error) {
         logger.error("Error confirming SNS subscription:", error);
       }
-    } else {
+    } else if (message.Type === "Notification") {
       // logger.info(`Received message: ${JSON.stringify(message, null, 2)}`);
       // logger.info(
       //   `Will forward a ${message.Type} to ${clients.size} clients.`,
       // );
-      clients.forEach((client) => {
+      const s3Event = JSON.parse(message.Message) as S3Event;
+
+      clients.forEach((bucket, client) => {
+        if (client.readyState !== WebSocket.OPEN) {
+          return;
+        }
+
+        const filteredRecords = s3Event.Records.filter(
+          (record) => record.s3.bucket.name === bucket,
+        );
+        if (filteredRecords.length === 0) {
+          logger.debug(
+            `No records for bucket "${bucket}". Not forwarding to this client.`,
+          );
+          return;
+        }
+
+        client.send(
+          JSON.stringify({
+            ...message,
+            Message: JSON.stringify({ ...s3Event, Records: filteredRecords }),
+          }),
+        );
+      });
+    } else {
+      clients.forEach((_, client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify(message));
         }
@@ -96,13 +121,19 @@ app.post("/sns", async (req, res) => {
 });
 
 wss.on("connection", (client: ExtendedWebSocket, request) => {
-  const token = new URLSearchParams(request.url?.split("?")[1] ?? "").get(
-    "token",
-  );
+  const parameters = new URLSearchParams(request.url?.split("?")[1] ?? "");
+  const token = parameters.get("token");
+  const bucket = parameters.get("bucket");
 
   if (token !== WEBSOCKET_TOKEN) {
     logger.warn("Unauthorized WebSocket connection attempt");
     client.close(1008, "Unauthorized");
+    return;
+  }
+
+  if (!bucket) {
+    logger.warn("WebSocket connection attempt without bucket name");
+    client.close(1008, "Missing bucket name");
     return;
   }
 
@@ -111,9 +142,9 @@ wss.on("connection", (client: ExtendedWebSocket, request) => {
     client.isAlive = true;
   });
 
-  clients.add(client);
+  clients.set(client, bucket);
   logger.info(
-    `New WebSocket client connected. (Number of clients: ${clients.size})`,
+    `New WebSocket client connected for bucket "${bucket}". (Number of clients: ${clients.size})`,
   );
 
   client.on("close", () => {

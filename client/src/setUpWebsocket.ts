@@ -70,7 +70,11 @@ export function setUpWebsocket(
       ws.close();
     }
 
-    ws = new WebSocket(`${WEBSOCKET_URL}?token=${WEBSOCKET_TOKEN}`);
+    const parameters = new URLSearchParams({
+      token: WEBSOCKET_TOKEN,
+      bucket: S3_BUCKET,
+    });
+    ws = new WebSocket(`${WEBSOCKET_URL}?${parameters.toString()}`);
 
     connectionDropCheck();
 
@@ -115,13 +119,9 @@ export function setUpWebsocket(
             const {
               eventName,
               s3: {
-                bucket: { name: bucketName },
                 object: { key },
               },
             } = record;
-            if (bucketName !== S3_BUCKET) {
-              continue;
-            }
 
             // S3 turns spaces into `+`.
             const decodedKey = key.replaceAll("+", " ");
