@@ -29,6 +29,7 @@ import {
 import { fileExists } from "@s3-smart-sync/shared/fileExists.ts";
 import { getErrorMessage } from "@s3-smart-sync/shared/getErrorMessage.ts";
 import { getUpdateVersion } from "./getUpdateVersion.ts";
+import { installService, uninstallService } from "./installService.ts";
 import { shutdown } from "./shutdown.ts";
 
 async function downloadFile(key: string) {
@@ -151,6 +152,16 @@ async function syncFile(localPath: string) {
 }
 
 // ========================= MAIN EXECUTION =====================================
+if (process.argv.includes("install")) {
+  await installService();
+  process.exit(0);
+}
+
+if (process.argv.includes("uninstall")) {
+  await uninstallService();
+  process.exit(0);
+}
+
 const updateVersion = await getUpdateVersion();
 if (IS_CLI) {
   if (updateVersion) {

@@ -18,14 +18,16 @@ I'm using this myself 24/7 (used to on Windows, since about July 2026 on Linux -
 
 ## How to use (client with UI)
 
-Just run the latest release on your client machine(s).
+Just download the latest release on your client machine(s), fill in the `.env` and you're good to go!
 
 ### Linux
+
+You can also install as a systemd service: `./s3-smart-sync install` (There's also `uninstall`.)
 
 For convenience on servers - this downloads and unpacks to `./s3-smart-sync`:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/s-h-a-d-o-w/s3-smart-sync/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/s-h-a-d-o-w/s3-smart-sync/master/setup.sh | bash
 ```
 
 ### Windows
