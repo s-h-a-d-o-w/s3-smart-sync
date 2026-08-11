@@ -33,7 +33,7 @@ If you want the tray icon to look prettier, you have to manually enable the comp
 
 Logs to console instead of files.
 
-- Run the latest release with the commandline argument `cli`.
+- Run the latest release with the commandline argument `cli`. Optionally, you can also add `info` or `debug` to change the log level. (Default is `error`.)
 
 ## Dev notes
 

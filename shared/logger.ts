@@ -2,10 +2,10 @@ import winston, { format } from "winston";
 
 const { combine, timestamp, printf } = format;
 
+const IS_CLI = process.argv.includes("cli");
 const IS_DEV = process.env["NODE_ENV"] !== "production";
 
 export function getLogLevel() {
-  // server has NODE_ENV set in production and the client pkg
   if (IS_DEV) {
     return "debug";
   }
@@ -14,15 +14,12 @@ export function getLogLevel() {
     return "info";
   }
 
-  return !process.argv[2]
-    ? "error"
-    : process.argv[2] === "info" || process.argv.includes("cli")
-      ? "info"
-      : process.argv[2] === "debug"
-        ? "debug"
-        : "error";
+  return process.argv.includes("info")
+    ? "info"
+    : process.argv.includes("debug")
+      ? "debug"
+      : "error";
 }
-
 const logLevel = getLogLevel();
 
 const myFormat = combine(
@@ -44,9 +41,11 @@ if (logLevel === "info" || logLevel === "debug") {
 export const logger = winston.createLogger({
   level: logLevel,
   format: myFormat,
-  transports: [
-    new winston.transports.Console({
-      format: myFormat,
-    }),
-  ],
+  transports: IS_CLI
+    ? [
+        new winston.transports.Console({
+          format: myFormat,
+        }),
+      ]
+    : transports,
 });
