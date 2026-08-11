@@ -20,7 +20,7 @@ export function getLogLevel() {
       ? "debug"
       : "error";
 }
-const logLevel = getLogLevel();
+const logLevel = process.env["LOG_LEVEL"] ?? getLogLevel();
 
 const myFormat = combine(
   timestamp(),

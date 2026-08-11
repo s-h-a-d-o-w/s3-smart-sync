@@ -4,8 +4,8 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "cross-env PORT=4321 node --experimental-transform-types .",
-    "start": "node --experimental-transform-types ."
+    "dev": "cross-env PORT=4321 node .",
+    "start": "node ."
   },
   "dependencies": {
     "@aws-sdk/client-sns": "^3.896.0",

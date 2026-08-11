@@ -108,14 +108,14 @@ export function setUpWebsocket(
       }
 
       try {
-        const message = JSON.parse(data.toString()) as SNSMessage;
-        if (message.Type === "Notification") {
-          const snsMessage = JSON.parse(message.Message) as S3Event;
+        const snsMessage = JSON.parse(data.toString()) as SNSMessage;
+        if (snsMessage.Type === "Notification") {
+          const s3Message = JSON.parse(snsMessage.Message) as S3Event;
           logger.info(
-            `Received SNS message:\n${JSON.stringify(snsMessage, undefined, 2)}`,
+            `Received SNS message:\n${JSON.stringify(s3Message, undefined, 2)}`,
           );
 
-          for (const record of snsMessage.Records) {
+          for (const record of s3Message.Records) {
             const {
               eventName,
               s3: {
@@ -137,7 +137,7 @@ export function setUpWebsocket(
           }
         } else {
           throw new Error(
-            "Received invalid message: " + JSON.stringify(message),
+            "Received invalid message: " + JSON.stringify(snsMessage),
           );
         }
       } catch (error) {
