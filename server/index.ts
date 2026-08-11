@@ -63,24 +63,26 @@ app.post("/sns", async (req, res) => {
   }
 
   try {
-    const message = req.body as SNSMessage;
-    if (message.Type === "SubscriptionConfirmation") {
+    const snsMessage = req.body as SNSMessage;
+    if (snsMessage.Type === "SubscriptionConfirmation") {
       try {
         const command = new ConfirmSubscriptionCommand({
-          TopicArn: message.TopicArn,
-          Token: message.Token,
+          TopicArn: snsMessage.TopicArn,
+          Token: snsMessage.Token,
         });
         await snsClient.send(command);
         logger.info("SNS subscription confirmed");
       } catch (error) {
         logger.error("Error confirming SNS subscription:", error);
       }
-    } else if (message.Type === "Notification") {
-      // logger.info(`Received message: ${JSON.stringify(message, null, 2)}`);
+    } else if (snsMessage.Type === "Notification") {
+      logger.debug(
+        `Received message: ${JSON.stringify(snsMessage, undefined, 2)}`,
+      );
       // logger.info(
       //   `Will forward a ${message.Type} to ${clients.size} clients.`,
       // );
-      const s3Event = JSON.parse(message.Message) as S3Event;
+      const s3Event = JSON.parse(snsMessage.Message) as S3Event;
 
       clients.forEach((bucket, client) => {
         if (client.readyState !== WebSocket.OPEN) {
@@ -99,7 +101,7 @@ app.post("/sns", async (req, res) => {
 
         client.send(
           JSON.stringify({
-            ...message,
+            ...snsMessage,
             Message: JSON.stringify({ ...s3Event, Records: filteredRecords }),
           }),
         );
@@ -107,7 +109,7 @@ app.post("/sns", async (req, res) => {
     } else {
       clients.forEach((_, client) => {
         if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(message));
+          client.send(JSON.stringify(snsMessage));
         }
       });
     }

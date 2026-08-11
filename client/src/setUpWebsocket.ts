@@ -110,12 +110,12 @@ export function setUpWebsocket(
       try {
         const snsMessage = JSON.parse(data.toString()) as SNSMessage;
         if (snsMessage.Type === "Notification") {
-          const s3Message = JSON.parse(snsMessage.Message) as S3Event;
+          const s3Event = JSON.parse(snsMessage.Message) as S3Event;
           logger.info(
-            `Received SNS message:\n${JSON.stringify(s3Message, undefined, 2)}`,
+            `Received SNS message:\n${JSON.stringify(s3Event, undefined, 2)}`,
           );
 
-          for (const record of s3Message.Records) {
+          for (const record of s3Event.Records) {
             const {
               eventName,
               s3: {
