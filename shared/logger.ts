@@ -4,13 +4,14 @@ const { combine, timestamp, printf } = format;
 
 const IS_CLI = process.argv.includes("cli");
 const IS_DEV = process.env["NODE_ENV"] !== "production";
+const IS_SERVER = Boolean(process.env["IS_SERVER"]);
 
 export function getLogLevel() {
   if (IS_DEV) {
     return "debug";
   }
 
-  if (process.env["IS_SERVER"]) {
+  if (IS_SERVER) {
     return "info";
   }
 
@@ -41,11 +42,12 @@ if (logLevel === "info" || logLevel === "debug") {
 export const logger = winston.createLogger({
   level: logLevel,
   format: myFormat,
-  transports: IS_CLI
-    ? [
-        new winston.transports.Console({
-          format: myFormat,
-        }),
-      ]
-    : transports,
+  transports:
+    IS_CLI || IS_SERVER
+      ? [
+          new winston.transports.Console({
+            format: myFormat,
+          }),
+        ]
+      : transports,
 });
