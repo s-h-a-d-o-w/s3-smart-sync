@@ -1,6 +1,6 @@
 {
   "name": "@s3-smart-sync/client",
-  "version": "2.2.8",
+  "version": "2.3.8",
   "main": "./src/index.ts",
   "type": "module",
   "scripts": {
