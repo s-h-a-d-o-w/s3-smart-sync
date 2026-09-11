@@ -86,6 +86,11 @@ export async function waitUntil(
 }
 
 export async function mockSnsMessage(key: string, operation: "put" | "delete") {
+  // S3 event notifications URL-encode the key and turn spaces into `+`.
+  const encodedKey = encodeURIComponent(toPrefixedKey(key))
+    .replaceAll("%2F", "/")
+    .replaceAll("%20", "+");
+
   const message = {
     Type: "Notification",
     MessageId: "dummy",
@@ -98,7 +103,7 @@ export async function mockSnsMessage(key: string, operation: "put" | "delete") {
             operation === "put" ? "ObjectCreated:Put" : "ObjectRemoved:Delete",
           s3: {
             bucket: { name: S3_BUCKET },
-            object: { key: toPrefixedKey(key) },
+            object: { key: encodedKey },
           },
         },
       ],

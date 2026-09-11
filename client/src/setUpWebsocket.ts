@@ -123,8 +123,8 @@ export function setUpWebsocket(
               },
             } = record;
 
-            // S3 turns spaces into `+`.
-            const decodedKey = key.replaceAll("+", " ");
+            // S3 event notifications URL-encode the key and turn spaces into `+`.
+            const decodedKey = decodeURIComponent(key.replaceAll("+", " "));
             if (eventName.startsWith("ObjectCreated:")) {
               downloadFile(decodedKey);
             } else if (eventName.startsWith("ObjectRemoved:")) {
