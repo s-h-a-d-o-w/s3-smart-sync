@@ -48,7 +48,9 @@ async function downloadFile(key: string) {
     const { size } = await stat(localPath);
     trackFileOperation(key, size);
   } catch (error) {
-    logger.error(`Error downloading file ${key}: ${getErrorMessage(error)}`);
+    logger.error(
+      `downloadFile: Error downloading file ${key}: ${getErrorMessage(error)}`,
+    );
   } finally {
     unignore(FileOperationType.Sync, localPath);
     changeTrayIconState(TrayIconState.Idle);
@@ -68,19 +70,21 @@ async function removeLocalFile(key: string) {
 
     if ((await stat(localPath)).isDirectory()) {
       await rm(localPath, { recursive: true, force: true });
-      logger.info(`Removed local directory: ${key}`);
+      logger.info(`removeLocalFile: Removed local directory: ${key}`);
     } else {
       await unlink(localPath);
-      logger.info(`Removed local file: ${key}`);
+      logger.info(`removeLocalFile: Removed local file: ${key}`);
     }
 
     trackFileOperation(key);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      logger.info(`File ${key} already removed or doesn't exist.`);
+      logger.debug(
+        `removeLocalFile: File ${key} already removed or doesn't exist.`,
+      );
     } else {
       logger.error(
-        `Error removing local file ${key}: ${getErrorMessage(error)}`,
+        `removeLocalFile: Error removing local file ${key}: ${getErrorMessage(error)}`,
       );
     }
   } finally {
@@ -119,7 +123,7 @@ async function removeFile(localPath: string) {
     trackFileOperation(key);
   } catch (error) {
     logger.error(
-      `Error deleting file ${key} from S3: ${getErrorMessage(error)}`,
+      `removeFile: Error deleting file ${key} from S3: ${getErrorMessage(error)}`,
     );
   } finally {
     changeTrayIconState(TrayIconState.Idle);
@@ -128,6 +132,12 @@ async function removeFile(localPath: string) {
 
 async function syncFile(localPath: string) {
   const key = await convertAbsolutePathToKey(localPath);
+
+  // Short-lived temporary files of other programs may already be gone again by the time the debounced watcher callback runs.
+  if (!(await fileExists(localPath))) {
+    logger.debug(`syncFile: Doesn't exist (anymore): ${localPath}`);
+    return;
+  }
 
   try {
     if (await upToDate(key)) {
@@ -145,7 +155,15 @@ async function syncFile(localPath: string) {
     const { size } = await stat(localPath);
     trackFileOperation(key, size);
   } catch (error) {
-    logger.error(`Error uploading file ${key}: ${getErrorMessage(error)}`);
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      logger.debug(
+        `syncFile: File ${key} disappeared before it could be uploaded.`,
+      );
+    } else {
+      logger.error(
+        `syncFile: Error uploading file ${key}: ${getErrorMessage(error)}`,
+      );
+    }
   } finally {
     changeTrayIconState(TrayIconState.Idle);
   }

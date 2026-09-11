@@ -8,7 +8,7 @@ import {
   expect,
 } from "vitest";
 import { fileExists } from "@s3-smart-sync/shared/fileExists.ts";
-import { readFile, rm, stat } from "node:fs/promises";
+import { readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   UNIGNORE_DURATION,
@@ -265,5 +265,29 @@ describe("E2E Tests", () => {
     const { Contents } = await list("duplicate-file");
     expect(Contents?.length).toBe(1);
     expect(Contents?.[0]?.Key).toBe(S3_PREFIX + "duplicate-file");
+  });
+
+  it("should not error when a file disappears before it can be uploaded", async () => {
+    const logOffset = clientLogs[0]!.length;
+    const transientPath = path.join(clientDirectories[0]!, "transient.work");
+
+    // Long enough for the watcher to pick the file up, short enough to delete it while the debounced sync is still pending.
+    await writeFile(transientPath, "temporary content");
+    await pause(WATCHER_DEBOUNCE_DURATION / 5);
+    await rm(transientPath);
+
+    await pause(WATCHER_DEBOUNCE_DURATION * 2);
+
+    const newLogs = clientLogs[0]!.slice(logOffset);
+    console.log("New logs:\n", newLogs);
+    expect(newLogs).toMatch(/debouncing sync for .*transient\.work/u);
+    expect(newLogs).toMatch(
+      /syncFile: Doesn't exist \(anymore\): .*transient\.work/u,
+    );
+    expect(newLogs).not.toMatch(/Uploading: .*transient\.work/u);
+    expect(newLogs).not.toMatch(/\[error\]/u);
+
+    const { Contents } = await list("transient.work");
+    expect(Contents).toBeUndefined();
   });
 });
