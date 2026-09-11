@@ -1,52 +1,39 @@
-import {
-  createTrayIcon as originalCreateTrayIcon,
-  destroyTrayIcon as originalDestroyTrayIcon,
-  updateTrayIconImage as originalUpdateTrayIconImage,
-  updateTrayItem as originalUpdateTrayItem,
-  updateTrayTooltip as originalUpdateTrayTooltip,
-} from "node-tray";
 import { IS_CLI } from "./consts.ts";
 
-export const createTrayIcon = (
-  ...args: Parameters<typeof originalCreateTrayIcon>
-): ReturnType<typeof originalCreateTrayIcon> => {
-  if (!IS_CLI) {
-    return originalCreateTrayIcon(...args);
+type NodeTray = typeof import("node-tray");
+
+let nodeTray: NodeTray | undefined;
+
+// Loaded on demand so that runs without a tray icon (cli, install, uninstall) don't require the native addon's GUI libraries to be present
+async function loadNodeTray() {
+  nodeTray ??= await import("node-tray");
+  return nodeTray;
+}
+
+export const createTrayIcon = async (
+  ...args: Parameters<NodeTray["createTrayIcon"]>
+): ReturnType<NodeTray["createTrayIcon"]> => {
+  if (IS_CLI) {
+    return;
   }
 
-  return Promise.resolve();
+  return (await loadNodeTray()).createTrayIcon(...args);
 };
 
 export const destroyTrayIcon = (
-  ...args: Parameters<typeof originalDestroyTrayIcon>
-): ReturnType<typeof originalDestroyTrayIcon> => {
-  if (!IS_CLI) {
-    return originalDestroyTrayIcon(...args);
-  }
-};
+  ...args: Parameters<NodeTray["destroyTrayIcon"]>
+) => nodeTray?.destroyTrayIcon(...args);
 
 export const updateTrayIconImage = (
-  ...args: Parameters<typeof originalUpdateTrayIconImage>
-): ReturnType<typeof originalUpdateTrayIconImage> => {
-  if (!IS_CLI) {
-    return originalUpdateTrayIconImage(...args);
-  }
-};
+  ...args: Parameters<NodeTray["updateTrayIconImage"]>
+) => nodeTray?.updateTrayIconImage(...args);
 
 export const updateTrayItem = (
-  ...args: Parameters<typeof originalUpdateTrayItem>
-): ReturnType<typeof originalUpdateTrayItem> => {
-  if (!IS_CLI) {
-    return originalUpdateTrayItem(...args);
-  }
-};
+  ...args: Parameters<NodeTray["updateTrayItem"]>
+) => nodeTray?.updateTrayItem(...args);
 
 export const updateTrayTooltip = (
-  ...args: Parameters<typeof originalUpdateTrayTooltip>
-): ReturnType<typeof originalUpdateTrayTooltip> => {
-  if (!IS_CLI) {
-    return originalUpdateTrayTooltip(...args);
-  }
-};
+  ...args: Parameters<NodeTray["updateTrayTooltip"]>
+) => nodeTray?.updateTrayTooltip(...args);
 
 export type { TrayItem } from "node-tray";
