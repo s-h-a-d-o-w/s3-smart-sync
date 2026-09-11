@@ -5,8 +5,18 @@ REPO="s-h-a-d-o-w/s3-smart-sync"
 REQUIRED_COMMANDS=(curl jq tar)
 INSTALL_DIR="$PWD/s3-smart-sync"
 
+machine="$(uname -m)"
+case "$machine" in
+  x86_64 | amd64) ARCH="x64" ;;
+  aarch64 | arm64) ARCH="arm64" ;;
+  *)
+    echo "Error: unsupported architecture: $machine" >&2
+    exit 1
+    ;;
+esac
+
 TEMP_DIR="$(mktemp -d)"
-ARCHIVE="$TEMP_DIR/s3-smart-sync-linux-x64.tar.gz"
+ARCHIVE="$TEMP_DIR/s3-smart-sync-linux-$ARCH.tar.gz"
 
 installed_packages=()
 install_cmd=()
@@ -93,11 +103,11 @@ install_dependencies
 echo "Looking up the latest release..."
 download_url="$(
   curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
-    | jq -r '.assets[] | select(.name | endswith("linux-x64.tar.gz")) | .browser_download_url'
+    | jq -r --arg suffix "linux-$ARCH.tar.gz" '.assets[] | select(.name | endswith($suffix)) | .browser_download_url'
 )"
 
 if [ -z "$download_url" ]; then
-  echo "Error: no linux-x64 asset found in the latest release." >&2
+  echo "Error: no linux-$ARCH asset found in the latest release." >&2
   exit 1
 fi
 

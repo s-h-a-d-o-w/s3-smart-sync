@@ -16,7 +16,15 @@ cp -r assets dist/assets
 cp ../.env.schema dist/.env
 
 version=$(jq -r '.version' ./package.json)
-archive_name="s3-smart-sync-${version}-linux-x64"
+case "$(uname -m)" in
+  x86_64 | amd64) arch="x64" ;;
+  aarch64 | arm64) arch="arm64" ;;
+  *)
+    echo "Error: unsupported architecture: $(uname -m)" >&2
+    exit 1
+    ;;
+esac
+archive_name="s3-smart-sync-${version}-linux-${arch}"
 if [[ "$OS" == "Windows_NT" ]]; then
   powershell.exe -NoProfile -Command "Compress-Archive -Path '.\dist\*' -DestinationPath 's3-smart-sync-${version}-win-x64.zip' -Force"
   rm -rf dist
