@@ -41,22 +41,41 @@ export function cleanupWebsocket() {
   clearTimeout(connectionDropTimeout);
 
   if (ws) {
+    const socket = ws;
+
     return new Promise<void>((resolve) => {
-      ws?.removeAllListeners();
+      socket.removeAllListeners();
+
+      if (socket.readyState === WebSocket.CLOSED) {
+        ws = undefined;
+        resolve();
+        return;
+      }
 
       const forceCloseTimeout = setTimeout(() => {
         logger.info("Force terminating WebSocket");
-        ws?.terminate();
+        socket.terminate();
       }, 1000);
 
-      ws?.once("close", () => {
+      socket.once("close", () => {
         clearTimeout(forceCloseTimeout);
         ws = undefined;
         // oxlint-disable-next-line promise/no-multiple-resolved
         resolve();
       });
 
-      ws?.close();
+      // Aborting a handshake (closing while still connecting) emits an error which would otherwise go unhandled.
+      socket.once("error", (error) => {
+        logger.verbose(
+          `WebSocket error during shutdown: ${getErrorMessage(error)}`,
+        );
+      });
+
+      if (socket.readyState === WebSocket.CONNECTING) {
+        socket.terminate();
+      } else {
+        socket.close();
+      }
     });
   }
 }
